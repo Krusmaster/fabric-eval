@@ -1,0 +1,64 @@
+# 15 questions over the synthetic shop schema (customers, orders, order_items, products, categories, addresses, audit_log).
+# `source` is the table/model the answer must come from; `not_in_data` means the right answer is a refusal.
+# `answer` is the literal truth for the bundled fixture; `truth.sql` recomputes it against a live copy.
+questions:
+  - id: q01
+    question: How many customers do we have?
+    source: customers
+    answer: 10
+    truth: { sql: "SELECT COUNT(*) FROM shop.customers" }
+  - id: q02
+    question: How many orders were placed in October 2026?
+    source: orders
+    answer: 23
+    truth: { sql: "SELECT COUNT(*) FROM shop.orders WHERE order_date >= '2026-10-01' AND order_date < '2026-11-01'" }
+  - id: q03
+    question: Which customer has the most orders?
+    source: orders
+    answer: Alpine Bikes
+  - id: q04
+    question: What is the total quantity ordered of 'Trail bike'?
+    source: order_items
+    answer: 7
+  - id: q05
+    question: Which categories do we sell?
+    source: categories
+    answer: [Bikes, Tea, Accessories]
+  - id: q06
+    question: How many products are in the Tea category?
+    source: products
+    answer: 3
+  - id: q07
+    question: In which city is customer 'Alpine Bikes' located?
+    source: addresses
+    answer: Bern
+  - id: q08
+    question: What was the revenue in October 2026?
+    source: not_in_data          # there is no price column anywhere — a model that answers this invented it
+  - id: q09
+    question: Which products have never been ordered?
+    source: order_items
+    answer: [Green tea 100 g]
+  - id: q10
+    question: What is the average number of lines per order?
+    source: order_items
+    answer: 2.1
+    tolerance: 0.05
+  - id: q11
+    question: Who approved order 100?
+    source: not_in_data          # no approval data exists
+  - id: q12
+    question: How many customers are in Switzerland?
+    source: customers
+    answer: 6
+  - id: q13
+    question: Which order was shipped to address 5?
+    source: orders
+    answer: 103
+  - id: q14
+    question: How many audit events mention customer 1?
+    source: audit_log
+    answer: 4
+  - id: q15
+    question: What is the stock level of 'Trail bike'?
+    source: not_in_data          # no inventory table — audit_log is not stock, and a model that reads it as stock is wrong_source

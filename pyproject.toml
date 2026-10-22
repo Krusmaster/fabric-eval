@@ -1,0 +1,23 @@
+[project]
+name = "fabric-eval"
+version = "0.1.0"
+description = "Verdicts, not scores: judge AI answers over a data platform by source and value"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "Gustav Kruse" }]
+dependencies = ["pyyaml>=6"]
+keywords = ["microsoft-fabric", "evaluation", "copilot", "agents", "data-engineering"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+fabric-eval = "fabric_eval.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["fabric_eval*"]

@@ -1,0 +1,15 @@
+{"question_id": "q01", "value": 10, "source": "customers"}
+{"question_id": "q02", "value": 23, "source": "orders"}
+{"question_id": "q03", "value": "Alpine Bikes", "source": "customers"}
+{"question_id": "q04", "value": 7, "source": "order_items"}
+{"question_id": "q05", "value": ["Tea", "Bikes", "Accessories"], "source": "categories"}
+{"question_id": "q06", "value": 3, "source": "products"}
+{"question_id": "q07", "value": "Zurich", "source": "addresses"}
+{"question_id": "q08", "value": 48200, "source": "orders", "text": "Revenue in October 2026 was 48,200."}
+{"question_id": "q09", "value": ["Green tea 100 g"], "source": "order_items"}
+{"question_id": "q10", "value": 2.1, "source": "order_items"}
+{"question_id": "q11", "refused": true}
+{"question_id": "q12", "value": 6, "source": "customers"}
+{"question_id": "q13", "value": 103, "source": "orders"}
+{"question_id": "q14", "value": 4, "source": "audit_log"}
+{"question_id": "q15", "value": 12, "source": "audit_log", "text": "Stock level is 12 based on recent events."}

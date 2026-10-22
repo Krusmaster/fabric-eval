@@ -1,0 +1,15 @@
+{"question_id": "q01", "value": 10, "source": "customers"}
+{"question_id": "q02", "value": 23, "source": "orders"}
+{"question_id": "q03", "value": "Alpine Bikes", "source": "orders"}
+{"question_id": "q04", "value": 7, "source": "order_items"}
+{"question_id": "q05", "value": ["Tea", "Bikes", "Accessories"], "source": "categories"}
+{"question_id": "q06", "value": 3, "source": "products"}
+{"question_id": "q07", "value": "Bern", "source": "addresses"}
+{"question_id": "q08", "refused": true, "text": "There is no price or revenue information in the available data."}
+{"question_id": "q09", "value": ["Green tea 100 g"], "source": "order_items"}
+{"question_id": "q10", "value": 2.08, "source": "order_items"}
+{"question_id": "q11", "refused": true, "text": "No approval information exists."}
+{"question_id": "q12", "value": 5, "source": "customers"}
+{"question_id": "q13", "value": 103, "source": "orders"}
+{"question_id": "q14", "value": 4, "source": "audit_log"}
+{"question_id": "q15", "refused": true, "text": "There is no inventory table."}
