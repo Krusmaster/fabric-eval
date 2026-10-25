@@ -15,7 +15,7 @@ questions:
   - id: q03
     question: Which customer has the most orders?
     source: orders
-    answer: Alpine Bikes
+    answer: Harbour Bikes
   - id: q04
     question: What is the total quantity ordered of 'Trail bike'?
     source: order_items
@@ -29,9 +29,9 @@ questions:
     source: products
     answer: 3
   - id: q07
-    question: In which city is customer 'Alpine Bikes' located?
+    question: In which city is customer 'Harbour Bikes' located?
     source: addresses
-    answer: Bern
+    answer: Hamburg
   - id: q08
     question: What was the revenue in October 2026?
     source: not_in_data          # there is no price column anywhere — a model that answers this invented it

@@ -11,7 +11,7 @@ def test_matches_numbers_strings_sets_rows():
     assert matches(10, "10") and matches(2.1, 2.08, tolerance=0.05) and not matches(2.1, 2.0, tolerance=0.05)
     assert matches(1234, "1,234") and matches(1234, "1'234") and matches(48.5, "48,5")
     assert matches(1000, 1050, tolerance=0.1, rel=True)
-    assert matches("Alpine Bikes", "  alpine bikes ") and not matches("Bern", "Zurich")
+    assert matches("Harbour Bikes", "  harbour bikes ") and not matches("Hamburg", "Leipzig")
     assert matches(["Bikes", "Tea"], ["tea", "Bikes"]) and not matches(["Bikes", "Tea"], ["Bikes"])
     assert matches([{"id": 1}, {"id": 2}], [{"id": 2, "x": 0}, {"id": 1}])
 
