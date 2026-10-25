@@ -1,0 +1,19 @@
+# Conversion factors for the OPTIONAL energy / CO2 section of bench/REPORT.md.
+# Every factor needs a source and a date to be used. Empty values mean "no source yet": the report then prints
+# "not estimated" for anything that depends on them. Fill in a range (low/high), never a single point.
+#
+# How to fill in: when Microsoft (or a published study) gives a figure, write the number(s), the exact document and
+# its date. Keep the unit as written below. Do not convert prices into energy.
+tokens:
+  # energy per 1000 tokens processed by the model, in watt-hours (input and output together unless the source separates them)
+  energy_wh_per_1000_tokens: { low: null, high: null, source: "", date: "", note: "no public figure for the model used; leave empty until one exists" }
+fabric:
+  # energy per CPU-hour of the SQL analytics endpoint, in kWh (allocated_cpu_time_ms from queryinsights, summed)
+  cpu_hour_kwh: { low: null, high: null, source: "", date: "" }
+  # energy per capacity-unit-hour (CU-hour) of the Fabric capacity, in kWh (if the capacity metrics app is used instead of CPU time)
+  cu_hour_kwh: { low: null, high: null, source: "", date: "" }
+grid:
+  # grams of CO2 per kWh for the Azure region the capacity runs in; the region is a parameter of the report
+  swedencentral: { low: null, high: null, source: "", date: "" }
+  westeurope: { low: null, high: null, source: "", date: "" }
+  northeurope: { low: null, high: null, source: "", date: "" }

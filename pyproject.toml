@@ -11,6 +11,8 @@ keywords = ["microsoft-fabric", "evaluation", "copilot", "agents", "data-enginee
 
 [project.optional-dependencies]
 test = ["pytest"]
+# the measurement rig in bench/ (fabric-backend supplies the shop schema and its seed rows)
+bench = ["anthropic>=0.40", "mcp>=1.9", "pyodbc", "fabric-backend @ git+https://github.com/Krusmaster/fabric-backend.git"]
 
 [project.scripts]
 fabric-eval = "fabric_eval.cli:main"
@@ -21,3 +23,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["fabric_eval*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

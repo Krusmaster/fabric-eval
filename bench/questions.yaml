@@ -1,0 +1,26 @@
+# 20 questions over the shop schema in fabric_backend.seed (lakehouse demo_lh, schema shop).
+# `answer` is never written here: bench/truth.py computes it from seed.rows() at load time.
+# `source` is the table that holds the answered value (fabric-eval's wrong_source verdict uses it).
+# tags: hops:1 = one relationship step; hops:2-3 = two or three; ship_to = needs the confirmed orders.ship_to_id -> addresses;
+# composite = needs the composite key of order_items.
+questions:
+  - { id: q01, question: "How many orders has the customer 'Harbour Bikes' placed?", source: orders, tags: [hops:1] }
+  - { id: q02, question: "Which products are in the Tea category? List their names.", source: products, tags: [hops:1] }
+  - { id: q03, question: "What is the total quantity ordered of the product 'Trail bike' across all order lines?", source: order_items, tags: [hops:1] }
+  - { id: q04, question: "Which customers have placed the most orders? List every customer name that shares the top count.", source: customers, tags: [hops:1] }
+  - { id: q05, question: "In which cities does the customer 'Harbour Bikes' have addresses?", source: addresses, tags: [hops:1] }
+  - { id: q06, question: "How many audit log events belong to customers in Sweden (country SE)?", source: audit_log, tags: [hops:1] }
+  - { id: q07, question: "How many orders were placed in October 2026 by customers in Germany (country DE)?", source: orders, tags: [hops:1] }
+  - { id: q08, question: "Which categories have the most products? List every category name that shares the top count.", source: categories, tags: [hops:1] }
+  - { id: q09, question: "Which customers in Germany (country DE) have ordered something in the Bikes category? List their names.", source: customers, tags: [hops:2-3] }
+  - { id: q10, question: "Which category has the highest total ordered quantity? Give the category name.", source: categories, tags: [hops:2-3] }
+  - { id: q11, question: "How many distinct customers have ordered the product 'Helmet'?", source: customers, tags: [hops:2-3] }
+  - { id: q12, question: "How many order lines belong to orders placed by customers in Sweden (country SE)?", source: order_items, tags: [hops:2-3] }
+  - { id: q13, question: "Which products has the customer 'Fjord Outdoor' ordered? List their names.", source: products, tags: [hops:2-3] }
+  - { id: q14, question: "Customers from which country ordered the largest total quantity of products in the Tea category? Give the country code.", source: customers, tags: [hops:2-3] }
+  - { id: q15, question: "How many orders contain products from more than one category?", source: orders, tags: [hops:2-3] }
+  - { id: q16, question: "Which customer ordered the largest total quantity across all their order lines? Give the customer name.", source: customers, tags: [hops:2-3] }
+  - { id: q17, question: "To which city was order 103 shipped?", source: addresses, tags: [ship_to] }
+  - { id: q18, question: "How many orders were shipped to an address in Hamburg?", source: orders, tags: [ship_to] }
+  - { id: q19, question: "What is the quantity on line 2 of order 105?", source: order_items, tags: [composite] }
+  - { id: q20, question: "Which customers had an order shipped to an address in Leipzig? List their names.", source: customers, tags: [ship_to] }
