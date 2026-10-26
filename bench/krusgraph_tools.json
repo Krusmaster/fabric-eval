@@ -1,5 +1,5 @@
 {
- "source": "fabric_backend.server tools/list, fabric-backend 0.6.0, main at 02cc8b7 (26 Oct 2026); the deployed service may be behind main until its next update",
+ "source": "fabric_backend.server tools/list, fabric-backend 0.6.0, main at afe19bb (26 Oct 2026); the deployed service may be behind main until its next update",
  "generated": "2026-10-26",
  "tools": [
   {
@@ -1300,6 +1300,46 @@
      "api"
     ],
     "title": "app_readinessArguments",
+    "type": "object"
+   },
+   "read_only": true
+  },
+  {
+   "name": "lineage",
+   "description": "Which Fabric objects in the workspace build on the source's tables: GraphQL APIs (from their definition),\n    semantic models (from their TMDL definition), views on the SQL analytics endpoint (INFORMATION_SCHEMA.VIEW_TABLE_USAGE)\n    and data agents (named in their definition). Returns a graph (nodes: tables and objects; edges: used by), the\n    objects per table, the tables used by nothing, the items that could not be read, and with `table` the answer to\n    what a change to that table reaches. Read-only.",
+   "input_schema": {
+    "properties": {
+     "workspace": {
+      "title": "Workspace",
+      "type": "string"
+     },
+     "source": {
+      "title": "Source",
+      "type": "string"
+     },
+     "schema": {
+      "default": "dbo",
+      "title": "Schema",
+      "type": "string"
+     },
+     "table": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Table"
+     }
+    },
+    "required": [
+     "workspace",
+     "source"
+    ],
+    "title": "lineageArguments",
     "type": "object"
    },
    "read_only": true

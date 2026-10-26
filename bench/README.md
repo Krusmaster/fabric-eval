@@ -98,11 +98,11 @@ on it):
 | run | agent runs | model cost | wall time |
 | --- | --- | --- | --- |
 | small (5 questions × 1 repeat × A, B) | 10 | about $0.6 – $6 | 2 – 18 minutes, plus the Fabric metrics wait |
-| full (25 questions × 3 repeats × A, B) | 150 | about $8 – $89 | 0.5 – 4.4 hours |
+| full (25 questions × 3 repeats × A, B) | 150 | about $9 – $90 | 0.5 – 4.4 hours |
 
 The range is wide because it rests on assumptions (bench/estimate.py: 3–6 steps per run in A, 4–8 in B, tool results
 of 300–3 000 characters per step in A and 600–6 000 in B, 150–1 500 output tokens per step including thinking, 3–15 s
-per step, no prompt caching). Setup B resends its tool list (about 4 600–6 300 tokens, against A's 300–400) on every
+per step, no prompt caching). Setup B resends its tool list (about 4 900–6 600 tokens, against A's 300–400) on every
 step, which is most of the difference in input. The Fabric side is the capacity's running time for that long; its
 CU use is not estimated. After the small run, the medians in the JSONL records replace these assumptions.
 
