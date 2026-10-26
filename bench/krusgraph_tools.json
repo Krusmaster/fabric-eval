@@ -1,5 +1,5 @@
 {
- "source": "fabric_backend.server tools/list, fabric-backend 0.6.0, main at 5a5888c",
+ "source": "fabric_backend.server tools/list, fabric-backend 0.6.0, main at 5adace8",
  "generated": "2026-10-26",
  "tools": [
   {
@@ -228,6 +228,125 @@
      "source"
     ],
     "title": "validate_planArguments",
+    "type": "object"
+   },
+   "read_only": true
+  },
+  {
+   "name": "review_plan",
+   "description": "The plan with the decisions made about it and its checks, as one JSON file to keep in your own repository,\nplus a short Markdown report and what needs attention first. Each key and relationship has a review status\n(proposed, accepted, rejected or open, with a reason, set through `decisions`: [{\"item\": \"rel:orders.ship_to_id>addresses\",\n\"review\": \"accepted\", \"reason\": \"...\"}]) and, separately, a check status (not_checked, passed, failed, stale).\nKeys given in `keys` and relationships added in `confirmed` count as accepted. validate=true runs validate_plan's\ncounting queries and records the counts with the time. `previous` takes an earlier file from this tool: its\ncorrections are applied again, what changed in the schema is listed, and a check on a table that changed since\nbecomes stale instead of being kept. `tables` limits the file to some tables and the relationships that touch\nthem. The file holds names, types, rules, decisions and counts, never row values or credentials. Creates nothing.",
+   "input_schema": {
+    "properties": {
+     "workspace": {
+      "title": "Workspace",
+      "type": "string"
+     },
+     "source": {
+      "title": "Source",
+      "type": "string"
+     },
+     "schema": {
+      "default": "dbo",
+      "title": "Schema",
+      "type": "string"
+     },
+     "keys": {
+      "anyOf": [
+       {
+        "additionalProperties": {
+         "items": {
+          "type": "string"
+         },
+         "type": "array"
+        },
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Keys"
+     },
+     "confirmed": {
+      "anyOf": [
+       {
+        "items": {
+         "additionalProperties": true,
+         "type": "object"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Confirmed"
+     },
+     "decisions": {
+      "anyOf": [
+       {
+        "items": {
+         "additionalProperties": true,
+         "type": "object"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Decisions"
+     },
+     "previous": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Previous"
+     },
+     "validate": {
+      "default": false,
+      "title": "Validate",
+      "type": "boolean"
+     },
+     "tables": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "default": null,
+      "title": "Tables"
+     },
+     "max_items": {
+      "default": 60,
+      "title": "Max Items",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "workspace",
+     "source"
+    ],
+    "title": "review_planArguments",
     "type": "object"
    },
    "read_only": true

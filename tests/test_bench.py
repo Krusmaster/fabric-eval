@@ -522,7 +522,7 @@ def test_estimate_uses_the_snapshot_and_states_its_assumptions():
     from bench import estimate
     snap = estimate.load_snapshot()
     names = [t["name"] for t in snap["tools"]]
-    assert len(names) == len(set(names)) and {"plan_backend", "join_path", "suggest_relationships", "list_tables"} <= set(names)
+    assert len(names) == len(set(names)) and {"plan_backend", "join_path", "suggest_relationships", "list_tables", "review_plan"} <= set(names)
     writing = {"create_backend", "create_ontology", "create_semantic_model", "create_views", "create_data_agent",
                "create_silver_notebook", "create_gold_views", "create_drift_monitor"}
     assert {t["name"] for t in snap["tools"] if not t["read_only"]} == writing
@@ -530,6 +530,7 @@ def test_estimate_uses_the_snapshot_and_states_its_assumptions():
     b = [t["name"] for t in lists["B"]]
     assert b[:2] == ["list_tables", "run_sql"] and b[-1] == "answer" and len(b) == len(set(b))
     assert not set(b) & writing and set(lists["B_excluded"]) == writing
+    assert "review_plan" in b                                                    # read-only: it returns a file, writes nothing
     qs = load_questions()[:5]
     e = estimate.estimate(["A", "B"], qs, 1, "claude-opus-5-5")
     for s in ("A", "B"):

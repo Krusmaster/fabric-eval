@@ -16,7 +16,7 @@ server on 127.0.0.1. Not yet run against a model, a workspace or krusgraph.com.
 | `questions.yaml` | 25 questions over the shop schema (`fabric_backend.seed`): 8 with one relationship step, 8 with two or three, 8 that need the link `orders.ship_to_id → addresses` (5 of them, q21–q25, with further hops, where joining addresses through the customer gives another answer), 1 that needs the composite key of `order_items` |
 | `truth.py` | computes every answer from `seed.rows()` in Python; nothing is typed in. `through_customer()` computes the wrong-path answers the tests compare against |
 | `tools.py` | `list_tables(schema)`, `run_sql(query)`: read-only T-SQL on the SQL analytics endpoint; one statement that starts with SELECT or WITH, and no word anywhere that starts a writing, waiting or database-switching statement (T-SQL runs `SELECT 1 DROP TABLE t` as two statements); endpoint errors go to the model verbatim; every statement tagged `/* bench:<run_id>:<question_id>:r<repeat> */` |
-| `mcp_tools.py` | Krusgraph's tools over MCP (streamable HTTP, MCP SDK 2.x) with the user's bearer token, sent only to https; keeps the tools the server marks read-only, leaves out the creating tools (eight at fabric-backend 5a5888c) and Krusgraph's own `list_tables` (A's is kept, names stay unique); counts calls and failures |
+| `mcp_tools.py` | Krusgraph's tools over MCP (streamable HTTP, MCP SDK 2.x) with the user's bearer token, sent only to https; keeps the tools the server marks read-only, leaves out the creating tools (eight at fabric-backend 5adace8) and Krusgraph's own `list_tables` (A's is kept, names stay unique); counts calls and failures |
 | `agent.py` | the loop: Anthropic Messages API with tool use, structured final answer through an `answer` tool, usage and stop reasons from the API. No sampling parameters (current models answer `temperature` with a 400), `max_tokens` 16 000 per response (thinking counts toward it), effort the model's own unless `--effort` is given |
 | `run.py` | runs questions × repeats for one or both setups and writes `results/<date>-<setup>.jsonl`, judged with fabric-eval's `judge` as it goes; `--dry-run` prints the plan and an estimate and calls nothing |
 | `estimate.py` | the dry run's estimate, from stated assumptions; `krusgraph_tools.json` is the tool-list snapshot it uses for setup B (regenerate with `python -m bench.estimate --snapshot --note "<commit>"` where `fabric-backend[server]` is installed) |
@@ -97,12 +97,12 @@ on it):
 
 | run | agent runs | model cost | wall time |
 | --- | --- | --- | --- |
-| small (5 questions × 1 repeat × A, B) | 10 | about $0.8 – $7 | 2 – 18 minutes, plus the Fabric metrics wait |
-| full (25 questions × 3 repeats × A, B) | 150 | about $13 – $100 | 0.5 – 4.4 hours |
+| small (5 questions × 1 repeat × A, B) | 10 | about $0.9 – $7 | 2 – 18 minutes, plus the Fabric metrics wait |
+| full (25 questions × 3 repeats × A, B) | 150 | about $13 – $102 | 0.5 – 4.4 hours |
 
 The range is wide because it rests on assumptions (bench/estimate.py: 3–6 steps per run in A, 4–8 in B, tool results
 of 300–3 000 characters per step in A and 600–6 000 in B, 150–1 500 output tokens per step including thinking, 3–15 s
-per step, no prompt caching). Setup B resends its tool list (about 8 100–10 900 tokens, against A's 300–400) on every
+per step, no prompt caching). Setup B resends its tool list (about 8 700–11 700 tokens, against A's 300–400) on every
 step, which is most of the difference in input. The Fabric side is the capacity's running time for that long; its
 CU use is not estimated. After the small run, the medians in the JSONL records replace these assumptions.
 
