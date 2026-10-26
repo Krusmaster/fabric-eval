@@ -227,13 +227,11 @@ def test_report_numbers_and_bootstrap_interval(tmp_path):
 
 def test_mock_run_builds_both_files_and_the_report(tmp_path):
     from bench import mock_run
-    import os
-    cwd = os.getcwd()
-    assert mock_run.main(["--out", str(tmp_path), "--repeats", "2", "--date", "2026-10-26"]) == 0
+    assert mock_run.main(["--out", str(tmp_path), "--repeats", "2", "--date", "2026-10-26", "--report", str(tmp_path / "REPORT.md")]) == 0
     a = [json.loads(x) for x in (tmp_path / "2026-10-26-mock-A.jsonl").read_text().splitlines()]
     b = [json.loads(x) for x in (tmp_path / "2026-10-26-mock-B.jsonl").read_text().splitlines()]
     assert len(a) == 40 and len(b) == 40 and {r["repeat"] for r in a} == {1, 2}
     assert sum(1 for r in a if r["verdict"] == "correct") == 36 and sum(1 for r in b if r["verdict"] == "correct") == 40
     assert all(r["mcp_calls"] >= 1 for r in b) and sum(r["graphql_failed"] for r in b) == 4
-    md = (Path(mock_run.HERE) / "REPORT.md").read_text()
+    md = (tmp_path / "REPORT.md").read_text()                                             # the test never touches bench/REPORT.md
     assert "mock" in md.lower() and "measures nothing" in md

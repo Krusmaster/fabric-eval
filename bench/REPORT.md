@@ -8,24 +8,24 @@ Measured, not claimed. Setup A has `list_tables` and `run_sql` (read-only T-SQL)
 
 | setup | runs | questions | correct | wrong | refused | error | share correct | model(s) | run id(s) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| A | 40 | 20 | 36 | 3 | 1 | 0 | 90 % | mock-model (replayed transcript, no API call) | 2026-10-26-mock-A |
-| B | 40 | 20 | 40 | 0 | 0 | 0 | 100 % | mock-model (replayed transcript, no API call) | 2026-10-26-mock-B |
+| A | 60 | 20 | 56 | 3 | 1 | 0 | 93 % | mock-model (replayed transcript, no API call) | 2026-10-26-mock-A |
+| B | 60 | 20 | 59 | 1 | 0 | 0 | 98 % | mock-model (replayed transcript, no API call) | 2026-10-26-mock-B |
 
 ## Per correct answer (median, p25–p75, min–max)
 
 | metric | A | B |
 | --- | --- | --- |
-| tokens (all) | 3740 (3740–5610, 3740–7480, n=36) | 17080 (12810–17080, 12810–21350, n=40) |
-| input tokens | 1800 (1800–5400, 1800–7200, n=36) | 12600 (6300–16800, 6300–21000, n=40) |
-| output tokens | 140 (140–210, 140–280, n=36) | 280 (210–280, 210–350, n=40) |
-| tokens read from cache | 1800 (0–1800, 0–1800, n=36) | 3150 (0–6300, 0–8400, n=40) |
-| tool calls | 2 (2–3, 2–4, n=36) | 4 (3–4, 3–5, n=40) |
-| failed queries | 0 (0–0, 0–1, n=36) | 0 (0–0, 0–1, n=40) |
-| SQL statements | 1 (1–2, 1–3, n=36) | 1.5 (1–2, 1–2, n=40) |
-| GraphQL calls | 0 (0–0, 0–0, n=36) | 0 (0–0, 0–1, n=40) |
+| tokens (all) | 3740 (3740–5610, 3740–7480, n=56) | 17080 (12810–17080, 12810–21350, n=59) |
+| input tokens | 1800 (1800–5400, 1800–7200, n=56) | 8400 (6300–16800, 6300–21000, n=59) |
+| output tokens | 140 (140–210, 140–280, n=56) | 280 (210–280, 210–350, n=59) |
+| tokens read from cache | 1800 (0–1800, 0–1800, n=56) | 6300 (0–6300, 0–8400, n=59) |
+| tool calls | 2 (2–3, 2–4, n=56) | 4 (3–4, 3–5, n=59) |
+| failed queries | 0 (0–0, 0–1, n=56) | 0 (0–0, 0–1, n=59) |
+| SQL statements | 1 (1–2, 1–3, n=56) | 1 (1–2, 1–2, n=59) |
+| GraphQL calls | 0 (0–0, 0–0, n=56) | 0 (0–0, 0–1, n=59) |
 | Fabric CPU ms | – | – |
 | Fabric data scanned MB | – | – |
-| wall time s | 0 (0–0, 0–0.0, n=36) | 0 (0–0, 0–0.0, n=40) |
+| wall time s | 0 (0–0, 0–0.0, n=56) | 0 (0–0, 0–0.0, n=59) |
 
 ## B against A
 
@@ -33,20 +33,20 @@ Difference of per-question means (B − A) with a 95 % bootstrap interval over t
 
 | metric | questions | mean A | mean B | B − A | 95 % interval |
 | --- | --- | --- | --- | --- | --- |
-| share correct | 20 | 0.9 | 1 | +0.1 | +0.025 to +0.2 |
-| tokens (all) | 20 | 4.72e+03 | 1.6e+04 | +1.13e+04 | +1.05e+04 to +1.22e+04 |
-| input tokens | 20 | 3.56e+03 | 1.23e+04 | +8.78e+03 | +8.11e+03 to +9.62e+03 |
-| output tokens | 20 | 177 | 262 | +85.8 | +70 to +105 |
-| tokens read from cache | 20 | 990 | 3.41e+03 | +2.42e+03 | +2.2e+03 to +2.71e+03 |
-| tool calls | 20 | 2.52 | 3.75 | +1.23 | +1 to +1.5 |
-| failed queries | 20 | 0.075 | 0.1 | +0.025 | -0.1 to +0.15 |
-| SQL statements | 20 | 1.52 | 1.5 | -0.025 | -0.15 to +0.1 |
+| share correct | 20 | 0.933 | 0.983 | +0.05 | -0.0167 to +0.117 |
+| tokens (all) | 20 | 4.38e+03 | 1.53e+04 | +1.1e+04 | +1.02e+04 to +1.19e+04 |
+| input tokens | 20 | 2.94e+03 | 1.06e+04 | +7.65e+03 | +7.08e+03 to +8.33e+03 |
+| output tokens | 20 | 164 | 251 | +87.5 | +74.1 to +104 |
+| tokens read from cache | 20 | 1.28e+03 | 4.5e+03 | +3.22e+03 | +2.96e+03 to +3.52e+03 |
+| tool calls | 20 | 2.34 | 3.59 | +1.25 | +1.06 to +1.48 |
+| failed queries | 20 | 0.05 | 0.1 | +0.05 | -0.05 to +0.183 |
+| SQL statements | 20 | 1.34 | 1.34 | -3.33e-17 | -0.075 to +0.075 |
 | GraphQL calls | 20 | 0 | 0.1 | +0.1 | +0 to +0.25 |
 | Fabric CPU ms | 0 | – | – | – | not comparable |
 | Fabric data scanned MB | 0 | – | – | – | not comparable |
-| wall time s | 20 | 0.00015 | 0.000225 | +7.5e-05 | -5e-05 to +0.0002 |
+| wall time s | 20 | 5e-05 | 3.33e-05 | -1.67e-05 | -5e-05 to +0 |
 
-Runs per setup: A: 40, B: 40. Questions with Fabric CPU figures: A: 0, B: 0 (queryinsights data is attached by bench/fabric_metrics.py; in setup B Krusgraph's own statements are untagged and are reported separately by that script).
+Runs per setup: A: 60, B: 60. Questions with Fabric CPU figures: A: 0, B: 0 (queryinsights data is attached by bench/fabric_metrics.py; in setup B Krusgraph's own statements are untagged and are reported separately by that script).
 
 ## Energy and CO₂ (optional, factor-based)
 

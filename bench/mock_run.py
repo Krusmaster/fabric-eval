@@ -87,6 +87,7 @@ def main(argv=None) -> int:
     ap.add_argument("--out", default=str(HERE / "results"))
     ap.add_argument("--repeats", type=int, default=3)
     ap.add_argument("--date", default=None)
+    ap.add_argument("--report", default=str(HERE / "REPORT.md"))
     a = ap.parse_args(argv)
     from datetime import date
     day = a.date or date.today().isoformat()
@@ -109,7 +110,7 @@ def main(argv=None) -> int:
         written.append(out)
         print(f"{setup}: {out}")
     from .report import main as report_main
-    report_main([str(p) for p in written] + ["--out", str(HERE / "REPORT.md")])
+    report_main([str(p) for p in written] + ["--out", a.report])
     return 0
 
 
