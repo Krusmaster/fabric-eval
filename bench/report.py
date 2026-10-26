@@ -144,6 +144,10 @@ def markdown(recs: list[dict], factors: dict, region: str) -> str:
            "Measured, not claimed. Setup A has `list_tables` and `run_sql` (read-only T-SQL); setup B has the same two tools plus "
            "Krusgraph's MCP tools. Same model, system prompt (apart from the tool list), temperature and questions; the raw "
            "records are the JSONL files next to this report. Resource figures are over the **correct** answers only.", ""]
+    if any("mock" in str(r.get("run_id", "")) for r in recs):
+        out += ["> **Mock run.** These records come from `python -m bench.mock_run`: a replaying fake model with constant, invented "
+                "token counts, SQL on a SQLite copy of the seed rows, canned Krusgraph tools. It exercises the pipeline and the "
+                "report; it measures nothing about any model or about Krusgraph. Real runs replace these files.", ""]
     if not recs:
         return "\n".join(out + ["No results yet."]) + "\n"
     out += ["## Runs", "", "| setup | runs | questions | correct | wrong | refused | error | share correct | model(s) | run id(s) |", "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]

@@ -1,12 +1,7 @@
 """The measurement rig against mocks only: a replaying fake model, a SQLite stand-in for the SQL analytics endpoint,
 fake MCP tools. No model, Fabric or network call anywhere in here."""
-import datetime
 import json
-import os
-import re
-import sqlite3
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
@@ -18,65 +13,7 @@ from bench.run import run
 HERE = Path(__file__).resolve().parent
 
 
-# ------------------------------------------------------------------ stand-ins ------------------
-
-def seed_execute():
-    """A SQLite database with the seed rows under schema `shop`; INFORMATION_SCHEMA.COLUMNS answered from PRAGMA."""
-    from fabric_backend import seed
-    con = sqlite3.connect(":memory:")
-    con.execute("ATTACH DATABASE ':memory:' AS shop")
-    for name, ddl in seed.SCHEMAS.items():
-        con.execute(f"CREATE TABLE shop.[{name}] ({ddl})")
-        data = [tuple(v.isoformat() if isinstance(v, (datetime.date, datetime.datetime)) else v for v in r) for r in seed.rows()[name]]
-        con.executemany(f"INSERT INTO shop.[{name}] VALUES ({','.join('?' * len(data[0]))})", data)
-    seen = []
-
-    def execute(sql):
-        seen.append(sql)
-        body = re.sub(r"/\* bench:[^*]* \*/ ", "", sql)
-        if "INFORMATION_SCHEMA.COLUMNS" in body:
-            rows = []
-            for name in seed.SCHEMAS:
-                for c in con.execute(f"PRAGMA shop.table_info([{name}])").fetchall():
-                    rows.append({"TABLE_NAME": name, "COLUMN_NAME": c[1], "DATA_TYPE": c[2].lower()})
-            return rows
-        cur = con.execute(body)
-        cols = [d[0] for d in cur.description]
-        return [dict(zip(cols, r)) for r in cur.fetchall()]
-    execute.seen = seen
-    execute.close = con.close
-    return execute
-
-
-def block(**kw):
-    return SimpleNamespace(**kw)
-
-
-def use(name, **inp):
-    use.n += 1
-    return block(type="tool_use", id=f"tu{use.n}", name=name, input=inp)
-
-
-use.n = 0
-
-
-class FakeModel:
-    """Replays scripted turns per question: scripts[question text] = [[blocks], [blocks], …]; each create() consumes one."""
-
-    def __init__(self, scripts: dict, usage=(1000, 50, 0, 0)):
-        self.scripts = {k: list(v) for k, v in scripts.items()}
-        self.calls = []
-        self.usage = usage
-        self.messages = self
-
-    def create(self, **kw):
-        self.calls.append(kw)
-        q = kw["messages"][0]["content"]
-        turns = self.scripts[q]
-        blocks = turns.pop(0) if turns else [block(type="text", text="I give up")]
-        i, o, cr, cc = self.usage
-        return SimpleNamespace(content=blocks, stop_reason="tool_use" if any(b.type == "tool_use" for b in blocks) else "end_turn",
-                               usage=SimpleNamespace(input_tokens=i, output_tokens=o, cache_read_input_tokens=cr, cache_creation_input_tokens=cc))
+from bench.mocks import FakeModel, block, seed_execute, use  # noqa: E402
 
 
 # ------------------------------------------------------------------ tools ----------------------
@@ -286,3 +223,17 @@ def test_report_numbers_and_bootstrap_interval(tmp_path):
     assert report.markdown([], {}, "x").endswith("No results yet.\n")
     out = tmp_path / "REPORT.md"
     assert report.main([str(p), "--out", str(out), "--factors", str(HERE.parent / "bench" / "factors.yaml")]) == 0 and out.exists()
+
+
+def test_mock_run_builds_both_files_and_the_report(tmp_path):
+    from bench import mock_run
+    import os
+    cwd = os.getcwd()
+    assert mock_run.main(["--out", str(tmp_path), "--repeats", "2", "--date", "2026-10-26"]) == 0
+    a = [json.loads(x) for x in (tmp_path / "2026-10-26-mock-A.jsonl").read_text().splitlines()]
+    b = [json.loads(x) for x in (tmp_path / "2026-10-26-mock-B.jsonl").read_text().splitlines()]
+    assert len(a) == 40 and len(b) == 40 and {r["repeat"] for r in a} == {1, 2}
+    assert sum(1 for r in a if r["verdict"] == "correct") == 36 and sum(1 for r in b if r["verdict"] == "correct") == 40
+    assert all(r["mcp_calls"] >= 1 for r in b) and sum(r["graphql_failed"] for r in b) == 4
+    md = (Path(mock_run.HERE) / "REPORT.md").read_text()
+    assert "mock" in md.lower() and "measures nothing" in md
