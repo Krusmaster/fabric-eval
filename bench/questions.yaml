@@ -1,8 +1,10 @@
-# 20 questions over the shop schema in fabric_backend.seed (lakehouse demo_lh, schema shop).
+# 25 questions over the shop schema in fabric_backend.seed (lakehouse demo_lh, schema shop).
 # `answer` is never written here: bench/truth.py computes it from seed.rows() at load time.
 # `source` is the table that holds the answered value (fabric-eval's wrong_source verdict uses it).
 # tags: hops:1 = one relationship step; hops:2-3 = two or three; ship_to = needs the confirmed orders.ship_to_id -> addresses;
-# composite = needs the composite key of order_items.
+# composite = needs the composite key of order_items; join_path = q21-q25: the ship-to link plus further hops, where
+# joining addresses through the customer instead of ship_to_id gives a different answer (the link no name rule makes,
+# which suggest_relationships proposes and join_path can follow once it is confirmed).
 questions:
   - { id: q01, question: "How many orders has the customer 'Harbour Bikes' placed?", source: orders, tags: [hops:1] }
   - { id: q02, question: "Which products are in the Tea category? List their names.", source: products, tags: [hops:1] }
@@ -24,3 +26,8 @@ questions:
   - { id: q18, question: "How many orders were shipped to an address in Hamburg?", source: orders, tags: [ship_to] }
   - { id: q19, question: "What is the quantity on line 2 of order 105?", source: order_items, tags: [composite] }
   - { id: q20, question: "Which customers had an order shipped to an address in Leipzig? List their names.", source: customers, tags: [ship_to] }
+  - { id: q21, question: "Which products were shipped to an address in Uppsala? List the product names.", source: products, tags: [ship_to, join_path] }
+  - { id: q22, question: "How many orders were shipped to an address that belongs to a different customer than the one who placed the order?", source: orders, tags: [ship_to, join_path] }
+  - { id: q23, question: "What total quantity of products in the Tea category was shipped to addresses in Leipzig?", source: order_items, tags: [ship_to, join_path] }
+  - { id: q24, question: "Which cities received fewer than 5 orders, counting each order once at its ship-to address? List the city names.", source: addresses, tags: [ship_to, join_path] }
+  - { id: q25, question: "How many distinct products were shipped to addresses in Kiel?", source: products, tags: [ship_to, join_path] }

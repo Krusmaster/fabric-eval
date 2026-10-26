@@ -79,7 +79,38 @@ def answers() -> dict[str, object]:
     out["q18"] = sum(1 for o in orders.values() if addresses[o["ship_to"]]["city"] == "Hamburg")
     out["q19"] = next(i["qty"] for i in items if i["order"] == 105 and i["line"] == 2)
     out["q20"] = sorted({name[o["customer"]] for o in orders.values() if addresses[o["ship_to"]]["city"] == "Leipzig"})
+    # --- the ship-to link plus further hops (join_path): through the customer's addresses the answers differ ----------
+    def shipped_to(city: str) -> set[int]:
+        return {oid for oid, o in orders.items() if addresses[o["ship_to"]]["city"] == city}
+    out["q21"] = sorted({products[i["product"]]["name"] for i in items if i["order"] in shipped_to("Uppsala")})
+    out["q22"] = sum(1 for o in orders.values() if addresses[o["ship_to"]]["customer"] != o["customer"])
+    out["q23"] = sum(i["qty"] for i in items if i["order"] in shipped_to("Leipzig") and products[i["product"]]["category"] == "Tea")
+    per_city = Counter(addresses[o["ship_to"]]["city"] for o in orders.values())
+    out["q24"] = sorted(c for c, n in per_city.items() if n < 5)
+    out["q25"] = len({i["product"] for i in items if i["order"] in shipped_to("Kiel")})
     return out
+
+
+def through_customer(question_id: str):
+    """The answer an agent gets when it joins addresses through the customer instead of orders.ship_to_id: the wrong
+    path the join_path questions are built to tell apart. Only for the tests, which check it differs from the truth."""
+    customers, categories, products, addresses, orders, items, audit = _tables(_rows())
+    cities = defaultdict(set)
+    for a in addresses.values():
+        cities[a["customer"]].add(a["city"])
+
+    def via(city: str) -> set[int]:
+        return {oid for oid, o in orders.items() if city in cities[o["customer"]]}
+    if question_id == "q21":
+        return sorted({products[i["product"]]["name"] for i in items if i["order"] in via("Uppsala")})
+    if question_id == "q23":
+        return sum(i["qty"] for i in items if i["order"] in via("Leipzig") and products[i["product"]]["category"] == "Tea")
+    if question_id == "q24":
+        per_city = Counter(c for o in orders.values() for c in cities[o["customer"]])
+        return sorted(c for c, n in per_city.items() if n < 5)
+    if question_id == "q25":
+        return len({i["product"] for i in items if i["order"] in via("Kiel")})
+    raise KeyError(question_id)
 
 
 def load_questions(path=HERE / "questions.yaml"):

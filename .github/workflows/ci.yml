@@ -3,9 +3,11 @@ on: { push: { branches: [main] }, pull_request: {} }
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix: { python-version: ["3.11", "3.12"] }      # 3.11: f-strings may not reuse their own quotes there
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
+        with: { python-version: "${{ matrix.python-version }}" }
       - run: pip install -e ".[test]" "fabric-backend @ git+https://github.com/Krusmaster/fabric-backend.git"
       - run: pytest -q

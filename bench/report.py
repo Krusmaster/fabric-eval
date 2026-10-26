@@ -58,6 +58,20 @@ def per_setup(recs: list[dict]) -> dict:
     return out
 
 
+def per_tag(recs: list[dict]) -> dict:
+    """tag -> setup -> {judged, correct, median_tokens}; records written before tags were recorded are skipped."""
+    out: dict = defaultdict(dict)
+    for tag in sorted({t for r in recs for t in (r.get("tags") or [])}):
+        for setup in sorted({r["setup"] for r in recs}):
+            rs = [r for r in recs if r["setup"] == setup and tag in (r.get("tags") or []) and r["verdict"] != "error"]
+            if not rs:
+                continue
+            correct = [r for r in rs if r["verdict"] == "correct"]
+            out[tag][setup] = {"judged": len(rs), "correct": len(correct),
+                               "median_tokens": statistics.median(r["tokens_total"] for r in correct) if correct else None}
+    return dict(out)
+
+
 def per_question_means(recs: list[dict], setup: str, metric: str, correct_only: bool) -> dict[str, float]:
     by = defaultdict(list)
     for r in recs:
@@ -142,8 +156,9 @@ def markdown(recs: list[dict], factors: dict, region: str) -> str:
     diffs = differences(recs)
     out = ["# Agent efficiency: with and without Krusgraph", "",
            "Measured, not claimed. Setup A has `list_tables` and `run_sql` (read-only T-SQL); setup B has the same two tools plus "
-           "Krusgraph's MCP tools. Same model, system prompt (apart from the tool list), temperature and questions; the raw "
-           "records are the JSONL files next to this report. Resource figures are over the **correct** answers only.", ""]
+           "Krusgraph's read-only MCP tools. Same model, settings (effort and max_tokens as recorded; no sampling parameters), "
+           "system prompt and questions; the tool list is the only difference. The raw records are the JSONL files next to this "
+           "report. Resource figures are over the **correct** answers only.", ""]
     if any("mock" in str(r.get("run_id", "")) for r in recs):
         out += ["> **Mock run.** These records come from `python -m bench.mock_run`: a replaying fake model with constant, invented "
                 "token counts, SQL on a SQLite copy of the seed rows, canned Krusgraph tools. It exercises the pipeline and the "
@@ -153,8 +168,23 @@ def markdown(recs: list[dict], factors: dict, region: str) -> str:
     out += ["## Runs", "", "| setup | runs | questions | correct | wrong | refused | error | share correct | model(s) | run id(s) |", "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
     for k, s in setups.items():
         c = s["counts"]
+        share = "–" if s["accuracy"] is None else f"{100 * s['accuracy']:.0f} %"
         out.append(f"| {k} | {s['runs']} | {s['questions']} | {c['correct']} | {c['wrong']} | {c['refused']} | {c['error']} | "
-                   f"{'–' if s['accuracy'] is None else f'{100 * s['accuracy']:.0f} %'} | {', '.join(s['models'])} | {', '.join(s['run_ids'])} |")
+                   f"{share} | {', '.join(s['models'])} | {', '.join(s['run_ids'])} |")
+    tags = per_tag(recs)
+    if tags:
+        out += ["", "## By question tag", "",
+                "Share correct and the median tokens per correct answer, per tag (a question can carry more than one tag). "
+                "`ship_to` and `join_path` need the link no name rule makes (orders.ship_to_id -> addresses); `composite` needs "
+                "the line key of order_items.", "",
+                "| tag | " + " | ".join(f"{s} correct | {s} tokens" for s in setups) + " |",
+                "| --- | " + " | ".join("--- | ---" for _ in setups) + " |"]
+        for tag, by in tags.items():
+            cells = []
+            for s in setups:
+                t = by.get(s)
+                cells.append("– | –" if not t else f"{t['correct']}/{t['judged']} | {_fmt(t['median_tokens'])}")
+            out.append(f"| {tag} | " + " | ".join(cells) + " |")
     out += ["", "## Per correct answer (median, p25–p75, min–max)", ""]
     out += ["| metric | " + " | ".join(setups) + " |", "| --- | " + " | ".join("---" for _ in setups) + " |"]
     for m, label in METRICS:
@@ -198,14 +228,17 @@ def markdown(recs: list[dict], factors: dict, region: str) -> str:
             "- Rebound: a tool that makes answers cheaper can lead to more questions being asked; this measures cost per answered question, "
             "not total use.",
             "- Model version and date: the model id is in every record; a later model, prompt or Krusgraph version changes the numbers.",
-            "- Caching: prompt-cache reads are counted separately; a warm cache on repeat 2 and 3 lowers input tokens for both setups, "
-            "and B's longer tool list caches differently from A's.",
+            "- Caching: the agent sets no prompt caching, so every step pays the full input price for the tool list and the "
+            "transcript in both setups; the cache columns stay at 0 unless caching is added, and B's longer tool list would then "
+            "gain more from it than A's.",
             "- Krusgraph's own server (Azure Container Apps) is not in these figures unless measured separately; in setup B its reads of the "
             "SQL endpoint show up in queryinsights without a bench tag.",
             "- queryinsights attributes CPU time per statement with a delay of up to 15 minutes and omits system queries; columns the view "
             "does not have are reported as missing rather than guessed.",
             "- Three repeats per question is enough to see large differences, not small ones; the bootstrap interval says how much the "
-            "twenty questions support.", ""]
+            "questions support.",
+            "- Setup B gets only the tools Krusgraph marks read-only; its creating tools are left out, and its own `list_tables` gives "
+            "way to setup A's.", ""]
     return "\n".join(out)
 
 

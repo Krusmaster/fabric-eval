@@ -10,6 +10,8 @@ import json
 import time
 from datetime import datetime, timezone
 
+DEFAULT_MAX_TOKENS = 16000          # per response; thinking counts toward it on current models, 1024 truncated turns
+
 SYSTEM = (
     "You answer questions about data in a Microsoft Fabric lakehouse: lakehouse demo_lh in workspace demo, schema shop. "
     "Use the tools to look at the tables and to compute the answer; do not guess numbers. Everything is read-only. "
@@ -49,25 +51,49 @@ def _usage(message) -> dict:
             "cache_read_tokens": int(get("cache_read_input_tokens")), "cache_creation_tokens": int(get("cache_creation_input_tokens"))}
 
 
+def request_params(model: str, system: str, tools: list, messages: list, max_tokens: int,
+                   temperature: float | None = None, effort: str | None = None) -> dict:
+    """The keyword arguments of one messages.create call. Sampling parameters are sent only when a caller asks for one
+    (the CLI never does): current models (Claude Opus 5.5, Sonnet 5.5, Haiku 5.5, Fable 5.1) reject `temperature` with a
+    400, and the anthropic 2.x SDK has no such parameter. `effort` goes into `output_config` when given; otherwise the
+    model's default applies (recorded in the run)."""
+    params = {"model": model, "system": system, "tools": tools, "messages": messages, "max_tokens": max_tokens}
+    if temperature is not None:
+        params["temperature"] = temperature
+    if effort:
+        params["output_config"] = {"effort": effort}
+    return params
+
+
 def run_question(client, model: str, question, toolsets: list, run_id: str, setup: str, repeat: int = 1,
-                 temperature: float = 0.0, max_steps: int = 12, max_tokens: int = 1024, system: str = SYSTEM) -> dict:
+                 temperature: float | None = None, max_steps: int = 12, max_tokens: int = DEFAULT_MAX_TOKENS,
+                 system: str = SYSTEM, effort: str | None = None) -> dict:
     """One question, one run: returns the record that goes to the JSONL (without the verdict)."""
     tools = [t for ts in toolsets for t in ts.tools] + [ANSWER_TOOL]
+    names = [t["name"] for t in tools]
+    if len(names) != len(set(names)):                     # the API refuses this request; say so once, not per question
+        raise ValueError(f"two tools share a name: {sorted({n for n in names if names.count(n) > 1})}")
     messages = [{"role": "user", "content": question.question}]
     rec = {"run_id": run_id, "setup": setup, "question_id": question.id, "repeat": repeat, "model": model,
-           "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "steps": 0,
+           "tags": list(getattr(question, "tags", []) or []), "effort": effort, "temperature": temperature,
+           "max_tokens": max_tokens, "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "steps": 0,
            "input_tokens": 0, "output_tokens": 0, "cache_read_tokens": 0, "cache_creation_tokens": 0,
            "tool_calls": {}, "sql_statements": 0, "sql_failed": 0, "graphql_calls": 0, "graphql_failed": 0,
-           "mcp_calls": 0, "mcp_failed": 0, "answer": None, "error": None}
+           "mcp_calls": 0, "mcp_failed": 0, "stop_reasons": [], "answer": None, "error": None}
     t0 = time.monotonic()
     sql_before = [(getattr(ts, "statements", 0), getattr(ts, "failed", 0)) for ts in toolsets]
     try:
         for _ in range(max_steps):
             rec["steps"] += 1
-            message = client.messages.create(model=model, system=system, tools=tools, messages=messages,
-                                             max_tokens=max_tokens, temperature=temperature)
+            message = client.messages.create(**request_params(model, system, tools, messages, max_tokens, temperature, effort))
             for k, v in _usage(message).items():
                 rec[k] += v
+            stop = getattr(message, "stop_reason", None)
+            rec["stop_reasons"].append(stop)
+            if stop == "refusal":                                 # the model declined: no answer, and the record says why
+                details = getattr(message, "stop_details", None)
+                rec["error"] = f"model refusal ({getattr(details, 'category', None) or 'no category'})"
+                break
             blocks = _blocks(message.content)
             messages.append({"role": "assistant", "content": blocks})
             uses = [b for b in blocks if b.get("type") == "tool_use"]

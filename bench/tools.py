@@ -12,7 +12,11 @@ from typing import Callable
 MAX_ROWS = 200
 MAX_CHARS = 20_000
 _STARTS = re.compile(r"^\s*(with|select)\b", re.I)
-_FORBIDDEN = re.compile(r"\b(insert|update|delete|merge|drop|alter|create|truncate|exec|execute|grant|revoke|into|backup|restore|dbcc|bulk|openrowset)\b", re.I)
+# T-SQL runs several statements in one batch without a ';' (`SELECT 1 DROP TABLE t`), so every word that starts a
+# statement that writes, waits, switches database or reaches outside is refused wherever it appears, string literals
+# included: a false refusal costs the model one retry, a missed one could change the lakehouse.
+_FORBIDDEN = re.compile(r"\b(insert|update|delete|merge|drop|alter|create|truncate|exec|execute|grant|revoke|deny|into|backup|restore|"
+                        r"dbcc|bulk|openrowset|openquery|opendatasource|openxml|waitfor|shutdown|kill|reconfigure|use)\b", re.I)
 
 TOOLS = [
     {"name": "list_tables", "description": "List the tables and their columns (name and SQL type) in one schema of the lakehouse's SQL analytics endpoint.",

@@ -17,7 +17,7 @@ from .mcp_tools import FakeMcpTools
 from .mocks import FakeModel, block, krusgraph_fakes, seed_execute, use
 from .run import run
 from .tools import SqlTools
-from .truth import answers, load_questions
+from .truth import answers, load_questions, through_customer
 
 HERE = Path(__file__).resolve().parent
 
@@ -43,9 +43,16 @@ SQL = {
     "q18": "SELECT COUNT(*) AS n FROM shop.orders o JOIN shop.addresses a ON a.address_id = o.ship_to_id WHERE a.city = 'Hamburg'",
     "q19": "SELECT quantity FROM shop.order_items WHERE order_id = 105 AND line_no = 2",
     "q20": "SELECT DISTINCT c.name FROM shop.orders o JOIN shop.addresses a ON a.address_id = o.ship_to_id JOIN shop.customers c ON c.customer_id = o.customer_id WHERE a.city = 'Leipzig'",
+    "q21": "SELECT DISTINCT p.name FROM shop.orders o JOIN shop.addresses a ON a.address_id = o.ship_to_id JOIN shop.order_items i ON i.order_id = o.order_id JOIN shop.products p ON p.product_id = i.product_id WHERE a.city = 'Uppsala'",
+    "q22": "SELECT COUNT(*) AS n FROM shop.orders o JOIN shop.addresses a ON a.address_id = o.ship_to_id WHERE a.customer_id <> o.customer_id",
+    "q23": "SELECT SUM(i.quantity) AS q FROM shop.orders o JOIN shop.addresses a ON a.address_id = o.ship_to_id JOIN shop.order_items i ON i.order_id = o.order_id JOIN shop.products p ON p.product_id = i.product_id JOIN shop.categories k ON k.id = p.category_id WHERE a.city = 'Leipzig' AND k.name = 'Tea'",
+    "q24": "SELECT a.city, COUNT(*) AS n FROM shop.orders o JOIN shop.addresses a ON a.address_id = o.ship_to_id GROUP BY a.city HAVING COUNT(*) < 5",
+    "q25": "SELECT COUNT(DISTINCT i.product_id) AS n FROM shop.orders o JOIN shop.addresses a ON a.address_id = o.ship_to_id JOIN shop.order_items i ON i.order_id = o.order_id WHERE a.city = 'Kiel'",
 }
+SHIP_TO = {"source": "orders", "source_cols": ["ship_to_id"], "target": "addresses", "target_cols": ["address_id"]}
 # scripted imperfections, so the report is not all green: (question, repeat) -> what the fake does instead
-A_WRONG = {("q17", 1): "Hamburg", ("q20", 1): ["Harbour Bikes"], ("q18", 2): 20}       # A guesses the ship_to link through the customer's own address
+A_WRONG = {("q17", 1): "Hamburg", ("q20", 1): ["Harbour Bikes"], ("q18", 2): 20,      # A guesses the ship_to link through the customer's own address
+           ("q21", 1): through_customer("q21"), ("q24", 1): through_customer("q24")}   # ...and joins addresses through the customer
 A_REFUSED = {("q19", 1)}                                                               # A does not find the composite key once
 A_FAILED_FIRST = {"q09", "q14", "q15"}                                                 # a syntax error on the first attempt, then the right SQL
 B_WRONG = {("q15", 3): 40}
@@ -66,6 +73,8 @@ def scripts_for(setup: str, questions, repeat: int) -> dict:
                 turns.append([use("query_graphql", workspace="demo", api="shop_api", query="{ customers(first: 5) { items { name } } }")])
             if "ship_to" in q.tags:
                 turns.append([use("suggest_relationships", workspace="demo", source="demo_lh", schema="shop")])
+            if "join_path" in q.tags:
+                turns.append([use("join_path", workspace="demo", source="demo_lh", schema="shop", start="orders", end="addresses", confirmed=[SHIP_TO])])
         if setup == "A" and q.id in A_FAILED_FIRST and repeat == 1:
             turns.append([use("run_sql", query=SQL[q.id].replace("JOIN", "JOIM", 1))])
         turns.append([use("run_sql", query=SQL[q.id])])
