@@ -362,7 +362,8 @@ def test_dry_run_prints_the_plan_and_calls_nothing(monkeypatch, tmp_path, capsys
     for qid in ("q01", "q10", "q17", "q19", "q21"):
         assert f"  {qid} [" in text
     assert "q02" not in text
-    assert "left out (they create items in Fabric): create_backend, create_semantic_model, create_views, create_data_agent" in text
+    assert ("left out (they create items in Fabric): create_backend, create_ontology, create_semantic_model, create_views, "
+            "create_data_agent, create_silver_notebook, create_gold_views, create_drift_monitor") in text
     assert "left out (setup A's tool of the same name is kept): list_tables" in text and "https://krusgraph.com/mcp" in text
     assert "ANTHROPIC_API_KEY: MISSING" in text and "KRUSGRAPH_TOKEN: MISSING" in text
     assert "ESTIMATE (assumptions, not a measurement):" in text and "model cost $" in text and "pricing" in text
@@ -522,11 +523,13 @@ def test_estimate_uses_the_snapshot_and_states_its_assumptions():
     snap = estimate.load_snapshot()
     names = [t["name"] for t in snap["tools"]]
     assert len(names) == len(set(names)) and {"plan_backend", "join_path", "suggest_relationships", "list_tables"} <= set(names)
-    assert {t["name"] for t in snap["tools"] if not t["read_only"]} == {"create_backend", "create_semantic_model", "create_views", "create_data_agent"}
+    writing = {"create_backend", "create_ontology", "create_semantic_model", "create_views", "create_data_agent",
+               "create_silver_notebook", "create_gold_views", "create_drift_monitor"}
+    assert {t["name"] for t in snap["tools"] if not t["read_only"]} == writing
     lists = estimate.tool_lists(snap)
     b = [t["name"] for t in lists["B"]]
     assert b[:2] == ["list_tables", "run_sql"] and b[-1] == "answer" and len(b) == len(set(b))
-    assert not set(b) & {"create_backend", "create_semantic_model", "create_views", "create_data_agent"}
+    assert not set(b) & writing and set(lists["B_excluded"]) == writing
     qs = load_questions()[:5]
     e = estimate.estimate(["A", "B"], qs, 1, "claude-opus-5-5")
     for s in ("A", "B"):
