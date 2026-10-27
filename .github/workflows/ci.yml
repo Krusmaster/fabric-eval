@@ -9,5 +9,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "${{ matrix.python-version }}" }
-      - run: pip install -e ".[test]" "fabric-backend @ git+https://github.com/Krusmaster/fabric-backend.git"
+      # fabric-backend at the commit pyproject.toml pins (5adace8), not main: its seed rows are the bench's answers
+      - run: pip install -e ".[test]" "fabric-backend @ git+https://github.com/Krusmaster/fabric-backend.git@5adace8795c629445518b74ad899a0991bdd375f"
       - run: pytest -q

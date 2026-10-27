@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -111,6 +112,40 @@ def through_customer(question_id: str):
     if question_id == "q25":
         return len({i["product"] for i in items if i["order"] in via("Kiel")})
     raise KeyError(question_id)
+
+
+def _norm(v):
+    """One cell as the endpoint, SQLite and seed.rows() all spell it: dates as ISO text, numbers as rounded floats."""
+    if isinstance(v, date):                                   # datetime too
+        return v.isoformat()
+    if isinstance(v, (int, float, Decimal)) and not isinstance(v, bool):
+        return round(float(v), 6)
+    return v
+
+
+def check_lakehouse(execute, schema: str = "shop") -> list[str]:
+    """What differs between the lakehouse's tables and seed.rows(), one line per table; [] when every table holds
+    exactly the seed rows. The answers come from the installed fabric-backend's seed; the lakehouse was seeded by hand
+    with whatever fabric-backend was installed then. If the two differ, every verdict is wrong for both setups.
+    One SELECT per table, tagged /* bench:seed-check */ so fabric_metrics never counts it towards a run."""
+    from fabric_backend.seed import SCHEMAS
+    expected = _rows()
+    problems = []
+    for table, ddl in SCHEMAS.items():
+        cols = ", ".join(f"[{c.split()[0]}]" for c in ddl.split(", "))
+        try:
+            got = execute(f"/* bench:seed-check */ SELECT {cols} FROM [{schema}].[{table}]")
+        except Exception as e:  # noqa: BLE001 — a missing table is a difference like any other
+            problems.append(f"{schema}.{table}: {type(e).__name__}: {e}")
+            continue
+        want = Counter(tuple(_norm(v) for v in r) for r in expected[table])
+        have = Counter(tuple(_norm(v) for v in r.values()) for r in got)
+        missing, extra = list((want - have).elements()), list((have - want).elements())
+        if missing or extra:
+            problems.append(f"{schema}.{table}: {len(got)} rows, the seed has {len(expected[table])}; "
+                            f"{len(missing)} seed rows missing" + (f" (e.g. {missing[0]})" if missing else "") +
+                            f", {len(extra)} rows not in the seed" + (f" (e.g. {extra[0]})" if extra else ""))
+    return problems
 
 
 def load_questions(path=HERE / "questions.yaml"):

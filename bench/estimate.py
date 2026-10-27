@@ -139,12 +139,14 @@ def _t(sec: float) -> str:
 
 
 def plan_text(setups: list[str], questions: list, repeats: int, model: str, env: dict[str, bool], out_dir: Path,
-              run_ids: dict[str, str], effort: str | None, max_tokens: int, url: str, est: dict) -> str:
+              run_ids: dict[str, str], effort: str | None, max_tokens: int, url: str, est: dict, seed_check: bool = True) -> str:
     """The dry-run report: exactly what would run, in which order, with which tools, and the estimate."""
     lines = ["DRY RUN: nothing is called (no model, no SQL endpoint, no Krusgraph) and nothing is written.", "",
              f"Model: {model}   effort: {effort or 'model default'}   max_tokens per response: {max_tokens}   temperature: not sent",
              f"Setups, one after the other: {', '.join(setups)}   repeats: {repeats}   questions: {len(questions)}   "
              f"runs: {len(questions) * repeats * len(setups)}",
+             ("First, before any model call: the seed check, one SELECT per shop table, comparing the lakehouse with "
+              "fabric_backend.seed; a difference stops the run." if seed_check else "Seed check: skipped (--skip-seed-check)."),
              "Order inside a setup: repeat 1 over every question in file order, then repeat 2, and so on.", ""]
     for s in setups:
         e = est["setups"][s]

@@ -14,12 +14,12 @@ server on 127.0.0.1. Not yet run against a model, a workspace or krusgraph.com.
 | file | does |
 | --- | --- |
 | `questions.yaml` | 25 questions over the shop schema (`fabric_backend.seed`): 8 with one relationship step, 8 with two or three, 8 that need the link `orders.ship_to_id → addresses` (5 of them, q21–q25, with further hops, where joining addresses through the customer gives another answer), 1 that needs the composite key of `order_items` |
-| `truth.py` | computes every answer from `seed.rows()` in Python; nothing is typed in. `through_customer()` computes the wrong-path answers the tests compare against |
+| `truth.py` | computes every answer from `seed.rows()` in Python; nothing is typed in. `through_customer()` computes the wrong-path answers the tests compare against; `check_lakehouse()` compares the lakehouse's tables with the seed rows, row for row, before a run |
 | `tools.py` | `list_tables(schema)`, `run_sql(query)`: read-only T-SQL on the SQL analytics endpoint; one statement that starts with SELECT or WITH, and no word anywhere that starts a writing, waiting or database-switching statement (T-SQL runs `SELECT 1 DROP TABLE t` as two statements); endpoint errors go to the model verbatim; every statement tagged `/* bench:<run_id>:<question_id>:r<repeat> */` |
 | `mcp_tools.py` | Krusgraph's tools over MCP (streamable HTTP, MCP SDK 2.x) with the user's bearer token, sent only to https; keeps the tools the server marks read-only, leaves out the creating tools (eight at fabric-backend 5adace8) and Krusgraph's own `list_tables` (A's is kept, names stay unique); counts calls and failures |
 | `agent.py` | the loop: Anthropic Messages API with tool use, structured final answer through an `answer` tool, usage and stop reasons from the API. No sampling parameters (current models answer `temperature` with a 400), `max_tokens` 16 000 per response (thinking counts toward it), effort the model's own unless `--effort` is given |
-| `run.py` | runs questions × repeats for one or both setups and writes `results/<date>-<setup>.jsonl`, judged with fabric-eval's `judge` as it goes; `--dry-run` prints the plan and an estimate and calls nothing |
-| `estimate.py` | the dry run's estimate, from stated assumptions; `krusgraph_tools.json` is the tool-list snapshot it uses for setup B (regenerate with `python -m bench.estimate --snapshot --note "<commit>"` where `fabric-backend[server]` is installed) |
+| `run.py` | runs questions × repeats for one or both setups and writes `results/<date>-<setup>.jsonl`, judged with fabric-eval's `judge` as it goes; first the seed check, which stops the run before any model call if the lakehouse differs from the seed (`--skip-seed-check` leaves it out); `--dry-run` prints the plan and an estimate and calls nothing |
+| `estimate.py` | the dry run's estimate, from stated assumptions; `krusgraph_tools.json` is the tool-list snapshot it uses for setup B (regenerate with `python -m bench.estimate --snapshot --note "main at <commit>"` where `fabric-backend[server]` is installed at that commit, and move the fabric-backend pin in `pyproject.toml`, `.github/workflows/ci.yml` and step 1 below to the same commit; a test checks the four agree) |
 | `fabric_metrics.py` | afterwards: CPU time and data scanned per tagged statement from `queryinsights.exec_requests_history`, attached to the results |
 | `report.py` | `REPORT.md`: share correct, a table per question tag, median and spread per correct answer, B − A with a bootstrap interval, optional energy/CO₂ from `factors.yaml`, limits |
 | `factors.yaml` | conversion factors with source and date; empty until a source exists |
@@ -35,11 +35,15 @@ Five questions, one repeat, both setups: q01 (one hop), q10 (two hops), q17 (shi
 ### Before
 
 1. The F2 capacity is **running** (not paused) and the lakehouse `demo_lh` in workspace `demo` has the shop tables:
-   the seed cell has been run in a notebook attached to it:
-   `%pip install git+https://github.com/Krusmaster/fabric-backend` then
+   the seed cell has been run in a notebook attached to it, with the fabric-backend commit the rig pins (the answers
+   are computed from that commit's seed rows):
+   `%pip install git+https://github.com/Krusmaster/fabric-backend@5adace8795c629445518b74ad899a0991bdd375f` then
    `from fabric_backend.seed import seed; seed(spark, schema="shop")`.
+   Every real run checks this first (one SELECT per table) and stops before any model call if a table differs; the
+   message names the table and a row. A lakehouse seeded earlier with another commit passes as long as its rows are
+   the same.
 2. Install, on the machine that runs the rig (Python 3.11 or 3.12 and the ODBC Driver 18 for SQL Server, as
-   fabric-backend needs): `pip install -e ".[test,bench]"`.
+   fabric-backend needs): `pip install -e ".[test,bench]"` (it installs fabric-backend at the pinned commit).
 3. Environment variables, in the shell, never in a file in the repository (bash / Git Bash):
 
 ```bash
@@ -68,7 +72,7 @@ hour; the small run takes far less, a full run may need fresh tokens between A a
 ```bash
 # 1. the plan: which questions, which tools, which variables are missing, and the estimate. Calls nothing.
 python -m bench.run --setups A,B --repeats 1 --only q01,q10,q17,q19,q21 --effort medium --dry-run
-# 2. smoke test: one question, setup A
+# 2. smoke test: one question, setup A (the seed check runs first; if it stops, re-seed before anything else)
 python -m bench.run --setups A --repeats 1 --only q01 --effort medium --run-id smoke
 # 3. the small run, A then B
 python -m bench.run --setups A,B --repeats 1 --only q01,q10,q17,q19,q21 --effort medium

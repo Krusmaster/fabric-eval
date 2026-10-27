@@ -4,6 +4,9 @@
 --dry-run prints exactly which questions and setups would run, in which order, with which tools, which environment
 variables are missing, and a cost and time estimate (labelled as one, see bench/estimate.py). It calls nothing.
 
+A real run first checks that the lakehouse holds exactly the rows the answers are computed from (truth.check_lakehouse,
+one SELECT per table) and stops before any model call if it does not; --skip-seed-check leaves that out.
+
 Environment (never a file in the repo):
   ANTHROPIC_API_KEY        the Anthropic key
   FABRIC_SQL_SERVER        the lakehouse's SQL analytics endpoint host (…datawarehouse.fabric.microsoft.com)
@@ -101,6 +104,7 @@ def main(argv=None) -> int:
     ap.add_argument("--dry-run", action="store_true", help="print what would run and an estimate; call nothing")
     ap.add_argument("--price-in", type=float, default=None, help="USD per million input tokens, for the estimate")
     ap.add_argument("--price-out", type=float, default=None, help="USD per million output tokens, for the estimate")
+    ap.add_argument("--skip-seed-check", action="store_true", help="do not compare the lakehouse with fabric_backend.seed first")
     a = ap.parse_args(argv)
     setups = setups_from(a)
     if a.repeats < 1:
@@ -114,7 +118,8 @@ def main(argv=None) -> int:
     if a.dry_run:
         from .estimate import estimate, plan_text
         est = estimate(setups, questions, a.repeats, a.model, a.price_in, a.price_out)
-        print(plan_text(setups, questions, a.repeats, a.model, env, Path(a.out), run_ids, a.effort, a.max_tokens, url, est), end="")
+        print(plan_text(setups, questions, a.repeats, a.model, env, Path(a.out), run_ids, a.effort, a.max_tokens, url, est,
+                        seed_check=not a.skip_seed_check), end="")
         return 0
 
     missing = [k for k, ok in env.items() if not ok]
@@ -130,6 +135,23 @@ def main(argv=None) -> int:
             return 2
     import anthropic
     from .tools import SqlTools, sqlserver_execute
+    if not a.skip_seed_check:
+        from .truth import check_lakehouse
+        schema = os.environ.get("FABRIC_SCHEMA", "shop")
+        execute = sqlserver_execute(os.environ["FABRIC_SQL_SERVER"], os.environ.get("FABRIC_SQL_DATABASE", "demo_lh"), os.environ["FABRIC_SQL_TOKEN"])
+        try:
+            problems = check_lakehouse(execute, schema)
+        finally:
+            getattr(execute, "close", lambda: None)()
+        if problems:
+            print("the lakehouse does not hold the rows the answers are computed from (fabric_backend.seed); nothing was run:",
+                  file=sys.stderr)
+            for p in problems:
+                print(f"  {p}", file=sys.stderr)
+            print("re-seed it with the fabric-backend commit pinned in pyproject.toml (bench/README.md, Before), "
+                  "or pass --skip-seed-check", file=sys.stderr)
+            return 2
+        print(f"seed check: every table in {schema} holds exactly the seed rows")
     client = anthropic.Anthropic()                                      # reads ANTHROPIC_API_KEY itself
     for setup in setups:
         run_id = run_ids[setup]

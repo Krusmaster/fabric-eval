@@ -112,6 +112,27 @@ def test_join_path_questions_agree_with_sql_and_the_wrong_path_gives_another_ans
     assert all({"ship_to", "join_path"} <= set(q.tags) for q in load_questions() if q.id in ("q21", "q22", "q23", "q24", "q25"))
 
 
+def test_seed_check_finds_every_difference_and_nothing_else():
+    from bench.truth import check_lakehouse
+    execute = seed_execute()
+    assert check_lakehouse(execute) == []                                             # the seed rows, as the endpoint returns them
+    assert all(sql.startswith("/* bench:seed-check */ SELECT ") for sql in execute.seen) and len(execute.seen) == 7
+
+    def drifted(sql):                                                                 # a lakehouse seeded by another fabric-backend
+        rows = execute(sql)
+        if "[order_items]" in sql:
+            rows[0]["quantity"] += 1
+        if "[orders]" in sql:
+            rows = rows[:-1]
+        return rows
+    problems = check_lakehouse(drifted)
+    assert [p.split(":")[0] for p in problems] == ["shop.orders", "shop.order_items"]
+    assert "59 rows, the seed has 60; 1 seed rows missing" in problems[0] and "0 rows not in the seed" in problems[0]
+    assert "1 seed rows missing" in problems[1] and "1 rows not in the seed (e.g. (100.0, 1.0, 3.0, 4.0))" in problems[1]
+    missing = check_lakehouse(execute, "elsewhere")                                   # no such tables: one line per table
+    assert len(missing) == 7 and all("no such table" in p for p in missing)
+
+
 # ------------------------------------------------------------------ the loop -------------------
 
 def test_run_setup_a_and_b_with_fakes(tmp_path):
@@ -344,7 +365,7 @@ def test_two_tools_with_one_name_are_refused_before_any_call():
 # ------------------------------------------------------------------ the CLI --------------------
 
 def _clear_env(monkeypatch):
-    for k in ("ANTHROPIC_API_KEY", "FABRIC_SQL_SERVER", "FABRIC_SQL_TOKEN", "KRUSGRAPH_TOKEN", "KRUSGRAPH_MCP_URL"):
+    for k in ("ANTHROPIC_API_KEY", "FABRIC_SQL_SERVER", "FABRIC_SQL_TOKEN", "FABRIC_SCHEMA", "KRUSGRAPH_TOKEN", "KRUSGRAPH_MCP_URL"):
         monkeypatch.delenv(k, raising=False)
 
 
@@ -359,6 +380,7 @@ def test_dry_run_prints_the_plan_and_calls_nothing(monkeypatch, tmp_path, capsys
     text = capsys.readouterr().out
     assert text.startswith("DRY RUN: nothing is called") and "Setups, one after the other: A, B   repeats: 1   questions: 5   runs: 10" in text
     assert "Model: claude-opus-5-5" in text and "temperature: not sent" in text
+    assert "before any model call: the seed check" in text
     for qid in ("q01", "q10", "q17", "q19", "q21"):
         assert f"  {qid} [" in text
     assert "q02" not in text
@@ -370,9 +392,10 @@ def test_dry_run_prints_the_plan_and_calls_nothing(monkeypatch, tmp_path, capsys
     assert not list(tmp_path.iterdir())                                   # nothing written
     assert "sav" not in text.lower()                                      # no claim about savings
     # a model without a known price: the cost is not estimated unless prices are given
-    assert runmod.main(["--setups", "A", "--repeats", "1", "--limit", "2", "--model", "some-other-model", "--dry-run"]) == 0
+    assert runmod.main(["--setups", "A", "--repeats", "1", "--limit", "2", "--model", "some-other-model", "--dry-run", "--skip-seed-check"]) == 0
     other = capsys.readouterr().out
     assert "model cost not estimated" in other and "pass --price-in and --price-out" in other and "questions: 2" in other
+    assert "Seed check: skipped" in other
     assert runmod.main(["--setups", "A", "--repeats", "1", "--limit", "2", "--model", "x", "--price-in", "1", "--price-out", "5", "--dry-run"]) == 0
     assert "given on the command line" in capsys.readouterr().out
 
@@ -425,6 +448,26 @@ def test_setup_b_connects_to_krusgraph_with_the_token_and_a_only_gets_sql(monkey
     monkeypatch.delenv("KRUSGRAPH_MCP_URL")
     monkeypatch.delenv("KRUSGRAPH_TOKEN")
     assert runmod.main(["--setups", "B", "--repeats", "1", "--limit", "1", "--out", str(tmp_path)]) == 2 and made == []
+
+
+def test_a_lakehouse_that_differs_from_the_seed_stops_the_run_before_any_model_call(monkeypatch, tmp_path, capsys):
+    import sys
+    import types
+    from bench import run as runmod
+    _clear_env(monkeypatch)
+    for k, v in {"ANTHROPIC_API_KEY": "test-key", "FABRIC_SQL_SERVER": "endpoint.example", "FABRIC_SQL_TOKEN": "sql-token"}.items():
+        monkeypatch.setenv(k, v)
+    clients, seen = [], []
+    monkeypatch.setitem(sys.modules, "anthropic", types.SimpleNamespace(Anthropic=lambda: clients.append(1) or "client"))
+    base = seed_execute()
+    monkeypatch.setattr("bench.tools.sqlserver_execute", lambda server, db, token: (lambda sql: base(sql)[1:] if "[customers]" in sql else base(sql)))
+    monkeypatch.setattr(runmod, "run", lambda *a, **k: seen.append(a[1]) or [])
+    assert runmod.main(["--setups", "A", "--repeats", "1", "--limit", "1", "--out", str(tmp_path)]) == 2
+    err = capsys.readouterr().err
+    assert "does not hold the rows" in err and "shop.customers: 9 rows, the seed has 10" in err and "--skip-seed-check" in err
+    assert clients == [] and seen == [] and not list(tmp_path.iterdir())             # no client, no question, no file
+    assert runmod.main(["--setups", "A", "--repeats", "1", "--limit", "1", "--out", str(tmp_path), "--skip-seed-check"]) == 0
+    assert seen == ["A"]
 
 
 # ------------------------------------------------------------------ the MCP client -------------
@@ -540,3 +583,19 @@ def test_estimate_uses_the_snapshot_and_states_its_assumptions():
     assert e["prices"] == (4.0, 20.0) and "pricing" in e["price_source"]
     assert e["total"]["cost_usd"][0] == pytest.approx(e["setups"]["A"]["cost_usd"][0] + e["setups"]["B"]["cost_usd"][0])
     assert "cost_usd" not in estimate.estimate(["A"], qs, 1, "unknown-model")["setups"]["A"]
+
+
+def test_fabric_backend_is_pinned_to_one_commit_everywhere():
+    """CI, the bench extra, the seeding step and the tool snapshot use the same fabric-backend commit: its seed rows are
+    the answers, its tool list is setup B's estimate, so a push to fabric-backend main changes neither."""
+    import re
+    from bench import estimate
+    url = re.compile(r"github\.com/Krusmaster/fabric-backend(?:\.git)?(?:@([0-9a-f]+))?")
+    pins = {}
+    for f in ("pyproject.toml", ".github/workflows/ci.yml", "bench/README.md"):
+        found = [m.group(1) for m in url.finditer((HERE.parent / f).read_text(encoding="utf-8"))]
+        assert found and None not in found, f"{f}: fabric-backend installed without a commit"
+        pins[f] = set(found)
+    commits = set().union(*pins.values())
+    assert len(commits) == 1 and len(next(iter(commits))) == 40, pins
+    assert f"at {next(iter(commits))[:7]}" in estimate.load_snapshot()["source"]
