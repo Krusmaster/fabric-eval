@@ -1,6 +1,6 @@
 # Agent efficiency: with and without Krusgraph
 
-Measured, not claimed. Setup A has `list_tables` and `run_sql` (read-only T-SQL); setup B has the same two tools plus Krusgraph's read-only MCP tools. Same model, settings (effort and max_tokens as recorded; no sampling parameters), system prompt and questions; the tool list is the only difference. The raw records are the JSONL files next to this report. Resource figures are over the **correct** answers only.
+Measured, not claimed. Setup A has `list_tables` and `run_sql` (read-only T-SQL); setup B has the same two tools plus Krusgraph's read-only MCP tools; setup C the same two plus only the read-only Krusgraph tools that help answer a question (bench/mcp_tools.py, QA_TOOLS). Same model, settings (effort and max_tokens as recorded; no sampling parameters), system prompt and questions; the tool list is the only difference. `+cache` marks runs with prompt caching on. The raw records are the JSONL files next to this report. Resource figures are over the **correct** answers only.
 
 > **Mock run.** These records come from `python -m bench.mock_run`: a replaying fake model with constant, invented token counts, SQL on a SQLite copy of the seed rows, canned Krusgraph tools. It exercises the pipeline and the report; it measures nothing about any model or about Krusgraph. Real runs replace these files.
 
@@ -31,13 +31,15 @@ Share correct and the median tokens per correct answer, per tag (a question can 
 | input tokens | 1800 (1800–5400, 1800–7200, n=69) | 8400 (6300–16800, 6300–25200, n=74) |
 | output tokens | 140 (140–210, 140–280, n=69) | 280 (210–350, 210–420, n=74) |
 | tokens read from cache | 1800 (0–1800, 0–1800, n=69) | 6300 (0–8400, 0–10500, n=74) |
+| tokens written to cache | 0 (0–0, 0–0, n=69) | 0 (0–0, 0–0, n=74) |
+| model cost USD (list price) | – | – |
 | tool calls | 2 (2–3, 2–4, n=69) | 4 (3–5, 3–6, n=74) |
 | failed queries | 0 (0–0, 0–1, n=69) | 0 (0–0, 0–1, n=74) |
 | SQL statements | 1 (1–2, 1–3, n=69) | 1 (1–2, 1–2, n=74) |
 | GraphQL calls | 0 (0–0, 0–0, n=69) | 0 (0–0, 0–1, n=74) |
 | Fabric CPU ms | – | – |
 | Fabric data scanned MB | – | – |
-| wall time s | 0 (0–0.0, 0–0.0, n=69) | 0.0 (0–0.0, 0–0.0, n=74) |
+| wall time s | 0 (0–0, 0–0.0, n=69) | 0 (0–0, 0–0.0, n=74) |
 
 ## B against A
 
@@ -50,15 +52,17 @@ Difference of per-question means (B − A) with a 95 % bootstrap interval over t
 | input tokens | 25 | 2.86e+03 | 1.16e+04 | +8.69e+03 | +7.77e+03 to +9.69e+03 |
 | output tokens | 25 | 162 | 276 | +114 | +91.5 to +139 |
 | tokens read from cache | 25 | 1.31e+03 | 5e+03 | +3.69e+03 | +3.28e+03 to +4.14e+03 |
+| tokens written to cache | 25 | 0 | 0 | +0 | +0 to +0 |
+| model cost USD (list price) | 0 | – | – | – | not comparable |
 | tool calls | 25 | 2.31 | 3.94 | +1.63 | +1.31 to +1.99 |
 | failed queries | 25 | 0.04 | 0.08 | +0.04 | -0.04 to +0.147 |
 | SQL statements | 25 | 1.31 | 1.34 | +0.0267 | -0.04 to +0.1 |
 | GraphQL calls | 25 | 0 | 0.08 | +0.08 | +0 to +0.2 |
 | Fabric CPU ms | 0 | – | – | – | not comparable |
 | Fabric data scanned MB | 0 | – | – | – | not comparable |
-| wall time s | 25 | 0.0004 | 0.000513 | +0.000113 | +3.33e-05 to +0.000193 |
+| wall time s | 25 | 4e-05 | 2.67e-05 | -1.33e-05 | -6.67e-05 to +4e-05 |
 
-Runs per setup: A: 75, B: 75. Questions with Fabric CPU figures: A: 0, B: 0 (queryinsights data is attached by bench/fabric_metrics.py; in setup B Krusgraph's own statements are untagged and are reported separately by that script).
+Runs per setup: A: 75, B: 75. Questions with Fabric CPU figures: A: 0, B: 0 (queryinsights data is attached by bench/fabric_metrics.py; in setups B and C Krusgraph's own statements are untagged and are reported separately by that script).
 
 ## Energy and CO₂ (optional, factor-based)
 
@@ -82,8 +86,8 @@ Factors:
 - The shop schema is a synthetic demo with seven small tables, not a customer's lakehouse; the questions were written by the people who built Krusgraph.
 - Rebound: a tool that makes answers cheaper can lead to more questions being asked; this measures cost per answered question, not total use.
 - Model version and date: the model id is in every record; a later model, prompt or Krusgraph version changes the numbers.
-- Caching: the agent sets no prompt caching, so every step pays the full input price for the tool list and the transcript in both setups; the cache columns stay at 0 unless caching is added, and B's longer tool list would then gain more from it than A's.
-- Krusgraph's own server (Azure Container Apps) is not in these figures unless measured separately; in setup B its reads of the SQL endpoint show up in queryinsights without a bench tag.
+- Caching: without `--cache` every step pays the full input price for the tool list and the transcript; with it (the `+cache` setups) later steps read them from the cache. Each setup is compared with A at the same caching setting. Model cost is at list prices (bench/estimate.py: cache reads at the model's cache price, writes at 1.25 × input for the 5-minute TTL); token counts alone overstate what cached runs cost.
+- Krusgraph's own server (Azure Container Apps) is not in these figures unless measured separately; in setups B and C its reads of the SQL endpoint show up in queryinsights without a bench tag.
 - queryinsights attributes CPU time per statement with a delay of up to 15 minutes and omits system queries; columns the view does not have are reported as missing rather than guessed.
 - Three repeats per question is enough to see large differences, not small ones; the bootstrap interval says how much the questions support.
-- Setup B gets only the tools Krusgraph marks read-only; its creating tools are left out, and its own `list_tables` gives way to setup A's.
+- Setups B and C get only the tools Krusgraph marks read-only; its creating tools are left out, and its own `list_tables` gives way to setup A's. C's list is a judgement of which tools help answer a question, made before any run.
