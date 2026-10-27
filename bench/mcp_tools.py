@@ -1,12 +1,12 @@
-"""Krusgraph's MCP tools for setup B: an MCP client over streamable HTTP against https://krusgraph.com/mcp with the
-user's bearer token. The session lives on a background thread with its own event loop, so the synchronous agent loop
+"""Krusgraph's MCP tools for setups B and C: an MCP client over streamable HTTP against https://krusgraph.com/mcp with
+the user's bearer token. The session lives on a background thread with its own event loop, so the synchronous agent loop
 can call tools one at a time. Counts calls and failures per tool; a GraphQL call is a call to `query_graphql`.
 
 Only the tools the server marks read-only (`readOnlyHint: true` in tools/list) are given to the model: a measurement
 run never creates an API, a view, a semantic model or a data agent. The creating tools are listed in `excluded`, and a
-call to one of them is refused here before it reaches the server. The token goes only to an https URL (or to a
-loopback address, for tests). Written for the MCP Python SDK 2.x (`input_schema`, `is_error`, httpx2); the bench extra
-pins it."""
+call to one of them is refused here before it reaches the server. Setup C narrows the read-only tools further to
+QA_TOOLS. The token goes only to an https URL (or to a loopback address, for tests). Written for the MCP Python SDK 2.x
+(`input_schema`, `is_error`, httpx2); the bench extra pins it."""
 from __future__ import annotations
 
 import asyncio
@@ -17,6 +17,10 @@ from urllib.parse import urlparse
 
 DEFAULT_URL = "https://krusgraph.com/mcp"
 _LOOPBACK = {"localhost", "127.0.0.1", "::1"}
+# setup C: the read-only Krusgraph tools that help answer a question about the data. The others (notebook, view and
+# model drafts, dbt files, app prompts, exports) build things; in B they only lengthen the tool list resent every step.
+QA_TOOLS = ("plan_backend", "join_path", "suggest_relationships", "sample_rows", "describe_backend", "query_graphql",
+            "answer_query_draft")
 
 
 def check_url(url: str) -> str:
@@ -62,13 +66,26 @@ def split_tools(listed: list, reserved=()) -> tuple[list[dict], list[str], list[
     return kept, excluded, shadowed
 
 
+def offered(kept: list[dict], allow=None) -> tuple[list[dict], list[str], list[str]]:
+    """(the kept tools a setup offers, kept tools it leaves out, allowed names the server does not have). `allow` None
+    offers every kept tool (setup B); QA_TOOLS gives setup C."""
+    if allow is None:
+        return list(kept), [], []
+    names = {t["name"] for t in kept}
+    return ([t for t in kept if t["name"] in allow], [t["name"] for t in kept if t["name"] not in allow],
+            [n for n in allow if n not in names])
+
+
 class McpTools:
-    def __init__(self, url: str, token: str, timeout: float = 120.0, reserved=()) -> None:
+    def __init__(self, url: str, token: str, timeout: float = 120.0, reserved=(), allow=None) -> None:
         self.url, self.token, self.timeout = check_url(url), token, timeout
         self.reserved = tuple(reserved)
+        self.allow = tuple(allow) if allow is not None else None
         self.tools: list[dict] = []
         self.excluded: list[str] = []
         self.shadowed: list[str] = []
+        self.not_offered: list[str] = []
+        self.missing: list[str] = []
         self.calls: dict[str, int] = {}
         self.failed: dict[str, int] = {}
         self.log: list[dict] = []
@@ -89,7 +106,7 @@ class McpTools:
         if not self._ready.wait(self.timeout):
             raise TimeoutError(f"no answer from {self.url} within {self.timeout}s")
         if self._error:
-            raise self._error
+            raise _leaf(self._error)
         return self
 
     async def _serve(self) -> None:
@@ -103,10 +120,13 @@ class McpTools:
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     listed = await session.list_tools()
-                    self.tools, self.excluded, self.shadowed = split_tools(list(listed.tools), self.reserved)
-                    if not self.tools:
+                    kept, self.excluded, self.shadowed = split_tools(list(listed.tools), self.reserved)
+                    self.tools, self.not_offered, self.missing = offered(kept, self.allow)
+                    if not kept:
                         raise RuntimeError(f"{self.url} marks none of its {len(self.excluded)} tools read-only; "
                                            "refusing to give the agent tools that write")
+                    if not self.tools:
+                        raise RuntimeError(f"{self.url} has none of the tools this setup uses: {', '.join(self.allow)}")
                     self._session = session
                     self._stop = asyncio.Event()
                     self._ready.set()
@@ -127,9 +147,9 @@ class McpTools:
 
     def call(self, name: str, args: dict, question_id: str, repeat: int) -> tuple[str, bool]:
         self.calls[name] = self.calls.get(name, 0) + 1
-        if not self.handles(name):                       # an excluded (writing) tool, even if the model guesses its name
+        if not self.handles(name):                       # a writing or not-offered tool, even if the model guesses its name
             self.failed[name] = self.failed.get(name, 0) + 1
-            return f"refused: {name} is not available in this run (read-only tools only)", True
+            return f"refused: {name} is not available in this run", True
         fut = asyncio.run_coroutine_threadsafe(self._session.call_tool(name, args), self._loop)
         try:
             result = fut.result(self.timeout)
@@ -143,6 +163,13 @@ class McpTools:
             self.failed[name] = self.failed.get(name, 0) + 1
         self.log.append({"question_id": question_id, "repeat": repeat, "tool": name, "args": args, "error": is_error, "chars": len(text)})
         return text, is_error
+
+
+def _leaf(e: BaseException) -> BaseException:
+    """The one error inside nested exception groups: the MCP client's task group wraps what _serve raises."""
+    while isinstance(getattr(e, "exceptions", None), tuple) and len(e.exceptions) == 1:
+        e = e.exceptions[0]
+    return e
 
 
 def _tool_error(text: str) -> bool:
@@ -162,6 +189,8 @@ class FakeMcpTools:
         self.tools = [{"name": n, "description": (descriptions or {}).get(n, n), "input_schema": {"type": "object", "properties": {}}} for n in functions]
         self.excluded: list[str] = []
         self.shadowed: list[str] = []
+        self.not_offered: list[str] = []
+        self.missing: list[str] = []
         self.calls: dict[str, int] = {}
         self.failed: dict[str, int] = {}
         self.log: list[dict] = []

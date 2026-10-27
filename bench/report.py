@@ -1,9 +1,11 @@
 """Build bench/REPORT.md from bench/results/*.jsonl.
 
-Per setup: share of correct answers; median and spread (p25–p75, min–max) over the CORRECT answers for tokens, tool
-calls, failed queries, Fabric CPU time and wall time. B against A: the difference of per-question means with a
-bootstrap confidence interval over the questions (resample question ids with replacement, 2000 times, seed 0). The
-energy/CO2 section uses bench/factors.yaml and prints "not estimated" for every factor without a source."""
+Per setup: share of correct answers; median and spread (p25–p75, min–max) over the CORRECT answers for tokens, model
+cost at list prices, tool calls, failed queries, Fabric CPU time and wall time. Runs with prompt caching are their own
+setups (A+cache, B+cache, C+cache). Every other setup against A at the same caching setting: the difference of
+per-question means with a bootstrap confidence interval over the questions (resample question ids with replacement,
+2000 times, seed 0). The energy/CO2 section uses bench/factors.yaml and prints "not estimated" for every factor without
+a source."""
 from __future__ import annotations
 
 import argparse
@@ -14,11 +16,19 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+from .estimate import cost_usd, price_table
+
 HERE = Path(__file__).resolve().parent
 METRICS = [("tokens_total", "tokens (all)"), ("input_tokens", "input tokens"), ("output_tokens", "output tokens"),
-           ("cache_read_tokens", "tokens read from cache"), ("tool_calls_total", "tool calls"), ("failed_queries", "failed queries"),
+           ("cache_read_tokens", "tokens read from cache"), ("cache_creation_tokens", "tokens written to cache"),
+           ("cost_usd", "model cost USD (list price)"), ("tool_calls_total", "tool calls"), ("failed_queries", "failed queries"),
            ("sql_statements", "SQL statements"), ("graphql_calls", "GraphQL calls"), ("fabric_cpu_ms", "Fabric CPU ms"),
            ("fabric_scanned_mb", "Fabric data scanned MB"), ("seconds", "wall time s")]
+
+
+def label(r: dict) -> str:
+    """The setup a record is reported under: its setup, with "+cache" when the run used prompt caching."""
+    return r["setup"] + ("+cache" if r.get("cache") else "")
 
 
 def load_results(paths: list[Path]) -> list[dict]:
@@ -27,6 +37,9 @@ def load_results(paths: list[Path]) -> list[dict]:
         for line in p.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 r = json.loads(line)
+                prices = price_table(str(r.get("model", "")))
+                r["cost_usd"] = cost_usd(prices, r.get("input_tokens", 0), r.get("output_tokens", 0), r.get("cache_read_tokens", 0),
+                                         r.get("cache_creation_tokens", 0)) if prices else None
                 r["tool_calls_total"] = sum((r.get("tool_calls") or {}).values())
                 r["failed_queries"] = int(r.get("sql_failed", 0)) + int(r.get("graphql_failed", 0))
                 fab = r.get("fabric") or {}
@@ -46,8 +59,8 @@ def spread(values: list[float]) -> dict | None:
 
 def per_setup(recs: list[dict]) -> dict:
     out = {}
-    for setup in sorted({r["setup"] for r in recs}):
-        rs = [r for r in recs if r["setup"] == setup]
+    for setup in sorted({label(r) for r in recs}):
+        rs = [r for r in recs if label(r) == setup]
         judged = [r for r in rs if r["verdict"] != "error"]
         correct = [r for r in rs if r["verdict"] == "correct"]
         counts = {v: sum(1 for r in rs if r["verdict"] == v) for v in ("correct", "wrong", "refused", "error")}
@@ -62,8 +75,8 @@ def per_tag(recs: list[dict]) -> dict:
     """tag -> setup -> {judged, correct, median_tokens}; records written before tags were recorded are skipped."""
     out: dict = defaultdict(dict)
     for tag in sorted({t for r in recs for t in (r.get("tags") or [])}):
-        for setup in sorted({r["setup"] for r in recs}):
-            rs = [r for r in recs if r["setup"] == setup and tag in (r.get("tags") or []) and r["verdict"] != "error"]
+        for setup in sorted({label(r) for r in recs}):
+            rs = [r for r in recs if label(r) == setup and tag in (r.get("tags") or []) and r["verdict"] != "error"]
             if not rs:
                 continue
             correct = [r for r in rs if r["verdict"] == "correct"]
@@ -75,7 +88,7 @@ def per_tag(recs: list[dict]) -> dict:
 def per_question_means(recs: list[dict], setup: str, metric: str, correct_only: bool) -> dict[str, float]:
     by = defaultdict(list)
     for r in recs:
-        if r["setup"] != setup:
+        if label(r) != setup:
             continue
         if correct_only and r["verdict"] != "correct":
             continue
@@ -104,10 +117,20 @@ def bootstrap_difference(a: dict[str, float], b: dict[str, float], samples: int 
             "difference": statistics.fmean(diffs), "ci95": [lo, hi], "samples": samples}
 
 
-def differences(recs: list[dict]) -> dict:
-    out = {"accuracy": bootstrap_difference(per_question_means(recs, "A", "accuracy", False), per_question_means(recs, "B", "accuracy", False))}
+def differences(recs: list[dict], base: str = "A", other: str = "B") -> dict:
+    out = {"accuracy": bootstrap_difference(per_question_means(recs, base, "accuracy", False), per_question_means(recs, other, "accuracy", False))}
     for m, _ in METRICS:
-        out[m] = bootstrap_difference(per_question_means(recs, "A", m, True), per_question_means(recs, "B", m, True))
+        out[m] = bootstrap_difference(per_question_means(recs, base, m, True), per_question_means(recs, other, m, True))
+    return out
+
+
+def comparisons(setups) -> list[tuple[str, str]]:
+    """(A, other) for every other setup that has its A at the same caching setting: B − A, C − A, B+cache − A+cache …"""
+    out = []
+    for s in setups:
+        base = "A+cache" if s.endswith("+cache") else "A"
+        if s != base and base in setups:
+            out.append((base, s))
     return out
 
 
@@ -153,12 +176,13 @@ def _interval(iv) -> str:
 
 def markdown(recs: list[dict], factors: dict, region: str) -> str:
     setups = per_setup(recs)
-    diffs = differences(recs)
     out = ["# Agent efficiency: with and without Krusgraph", "",
            "Measured, not claimed. Setup A has `list_tables` and `run_sql` (read-only T-SQL); setup B has the same two tools plus "
-           "Krusgraph's read-only MCP tools. Same model, settings (effort and max_tokens as recorded; no sampling parameters), "
-           "system prompt and questions; the tool list is the only difference. The raw records are the JSONL files next to this "
-           "report. Resource figures are over the **correct** answers only.", ""]
+           "Krusgraph's read-only MCP tools; setup C the same two plus only the read-only Krusgraph tools that help answer a "
+           "question (bench/mcp_tools.py, QA_TOOLS). Same model, settings (effort and max_tokens as recorded; no sampling "
+           "parameters), system prompt and questions; the tool list is the only difference. `+cache` marks runs with prompt "
+           "caching on. The raw records are the JSONL files next to this report. Resource figures are over the **correct** "
+           "answers only.", ""]
     if any("mock" in str(r.get("run_id", "")) for r in recs):
         out += ["> **Mock run.** These records come from `python -m bench.mock_run`: a replaying fake model with constant, invented "
                 "token counts, SQL on a SQLite copy of the seed rows, canned Krusgraph tools. It exercises the pipeline and the "
@@ -187,28 +211,34 @@ def markdown(recs: list[dict], factors: dict, region: str) -> str:
             out.append(f"| {tag} | " + " | ".join(cells) + " |")
     out += ["", "## Per correct answer (median, p25–p75, min–max)", ""]
     out += ["| metric | " + " | ".join(setups) + " |", "| --- | " + " | ".join("---" for _ in setups) + " |"]
-    for m, label in METRICS:
+    for m, name in METRICS:
+        nd = 4 if m == "cost_usd" else 1
         cells = []
         for s in setups.values():
             sp = s["per_correct"].get(m)
-            cells.append("–" if not sp else f"{_fmt(sp['median'])} ({_fmt(sp['p25'])}–{_fmt(sp['p75'])}, {_fmt(sp['min'])}–{_fmt(sp['max'])}, n={sp['n']})")
-        out.append(f"| {label} | " + " | ".join(cells) + " |")
-    out += ["", "## B against A", "",
-            "Difference of per-question means (B − A) with a 95 % bootstrap interval over the questions (2000 resamples). "
-            "Accuracy uses every judged run; the other rows use correct runs only, so a question with no correct run in one "
-            "setup drops out of that row (the `questions` column says how many remain). An interval that contains 0 means the "
-            "data does not separate the two setups on that metric.", "",
-            "| metric | questions | mean A | mean B | B − A | 95 % interval |", "| --- | --- | --- | --- | --- | --- |"]
-    for m, label in [("accuracy", "share correct")] + METRICS:
-        d = diffs.get(m)
-        if d is None:
-            out.append(f"| {label} | 0 | – | – | – | not comparable |")
-        else:
-            out.append(f"| {label} | {d['questions']} | {d['mean_a']:.3g} | {d['mean_b']:.3g} | {d['difference']:+.3g} | {d['ci95'][0]:+.3g} to {d['ci95'][1]:+.3g} |")
+            cells.append("–" if not sp else f"{_fmt(sp['median'], nd)} ({_fmt(sp['p25'], nd)}–{_fmt(sp['p75'], nd)}, "
+                                            f"{_fmt(sp['min'], nd)}–{_fmt(sp['max'], nd)}, n={sp['n']})")
+        out.append(f"| {name} | " + " | ".join(cells) + " |")
+    for base, other in comparisons(setups):
+        diffs = differences(recs, base, other)
+        out += ["", f"## {other} against {base}", "",
+                f"Difference of per-question means ({other} − {base}) with a 95 % bootstrap interval over the questions (2000 "
+                "resamples). Accuracy uses every judged run; the other rows use correct runs only, so a question with no correct "
+                "run in one setup drops out of that row (the `questions` column says how many remain). An interval that contains "
+                "0 means the data does not separate the two setups on that metric.", "",
+                f"| metric | questions | mean {base} | mean {other} | {other} − {base} | 95 % interval |",
+                "| --- | --- | --- | --- | --- | --- |"]
+        for m, name in [("accuracy", "share correct")] + METRICS:
+            d = diffs.get(m)
+            if d is None:
+                out.append(f"| {name} | 0 | – | – | – | not comparable |")
+            else:
+                out.append(f"| {name} | {d['questions']} | {d['mean_a']:.3g} | {d['mean_b']:.3g} | {d['difference']:+.3g} | "
+                           f"{d['ci95'][0]:+.3g} to {d['ci95'][1]:+.3g} |")
     n_runs = {k: s["runs"] for k, s in setups.items()}
     out += ["", f"Runs per setup: {', '.join(f'{k}: {v}' for k, v in n_runs.items())}. Questions with Fabric CPU figures: "
             + ", ".join(f"{k}: {(s['per_correct'].get('fabric_cpu_ms') or {}).get('n', 0)}" for k, s in setups.items())
-            + " (queryinsights data is attached by bench/fabric_metrics.py; in setup B Krusgraph's own statements are untagged and are reported separately by that script).", ""]
+            + " (queryinsights data is attached by bench/fabric_metrics.py; in setups B and C Krusgraph's own statements are untagged and are reported separately by that script).", ""]
     ec = energy_co2(setups, factors, region)
     out += ["## Energy and CO₂ (optional, factor-based)", "",
             f"Region for the grid factor: `{region}`. Only factors with a source in bench/factors.yaml are used; everything else is "
@@ -228,17 +258,18 @@ def markdown(recs: list[dict], factors: dict, region: str) -> str:
             "- Rebound: a tool that makes answers cheaper can lead to more questions being asked; this measures cost per answered question, "
             "not total use.",
             "- Model version and date: the model id is in every record; a later model, prompt or Krusgraph version changes the numbers.",
-            "- Caching: the agent sets no prompt caching, so every step pays the full input price for the tool list and the "
-            "transcript in both setups; the cache columns stay at 0 unless caching is added, and B's longer tool list would then "
-            "gain more from it than A's.",
-            "- Krusgraph's own server (Azure Container Apps) is not in these figures unless measured separately; in setup B its reads of the "
-            "SQL endpoint show up in queryinsights without a bench tag.",
+            "- Caching: without `--cache` every step pays the full input price for the tool list and the transcript; with it "
+            "(the `+cache` setups) later steps read them from the cache. Each setup is compared with A at the same caching "
+            "setting. Model cost is at list prices (bench/estimate.py: cache reads at the model's cache price, writes at 1.25 × "
+            "input for the 5-minute TTL); token counts alone overstate what cached runs cost.",
+            "- Krusgraph's own server (Azure Container Apps) is not in these figures unless measured separately; in setups B and C its reads "
+            "of the SQL endpoint show up in queryinsights without a bench tag.",
             "- queryinsights attributes CPU time per statement with a delay of up to 15 minutes and omits system queries; columns the view "
             "does not have are reported as missing rather than guessed.",
             "- Three repeats per question is enough to see large differences, not small ones; the bootstrap interval says how much the "
             "questions support.",
-            "- Setup B gets only the tools Krusgraph marks read-only; its creating tools are left out, and its own `list_tables` gives "
-            "way to setup A's.", ""]
+            "- Setups B and C get only the tools Krusgraph marks read-only; its creating tools are left out, and its own `list_tables` "
+            "gives way to setup A's. C's list is a judgement of which tools help answer a question, made before any run.", ""]
     return "\n".join(out)
 
 

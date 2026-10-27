@@ -1,4 +1,4 @@
-"""The agent loop: Anthropic Messages API with tool use, the same for both setups except the tool list.
+"""The agent loop: Anthropic Messages API with tool use, the same for every setup except the tool list.
 
 The model answers through the `answer` tool (value, source, refused), so the judge gets structure instead of prose.
 `client` is anything with `.messages.create(...)` returning a Message — the real `anthropic.Anthropic()` or the
@@ -52,12 +52,20 @@ def _usage(message) -> dict:
 
 
 def request_params(model: str, system: str, tools: list, messages: list, max_tokens: int,
-                   temperature: float | None = None, effort: str | None = None) -> dict:
+                   temperature: float | None = None, effort: str | None = None, cache: bool = False) -> dict:
     """The keyword arguments of one messages.create call. Sampling parameters are sent only when a caller asks for one
     (the CLI never does): current models (Claude Opus 5.5, Sonnet 5.5, Haiku 5.5, Fable 5.1) reject `temperature` with a
     400, and the anthropic 2.x SDK has no such parameter. `effort` goes into `output_config` when given; otherwise the
-    model's default applies (recorded in the run)."""
+    model's default applies (recorded in the run).
+
+    `cache` turns on prompt caching (5-minute TTL): a breakpoint on the system prompt, which caches the tool list and the
+    system prompt for every question of the setup, plus the API's automatic breakpoint on the last block, which caches
+    the conversation so far for the next step. The request is otherwise the same; the usage fields say what was read
+    from and written to the cache."""
     params = {"model": model, "system": system, "tools": tools, "messages": messages, "max_tokens": max_tokens}
+    if cache:
+        params["system"] = [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}]
+        params["cache_control"] = {"type": "ephemeral"}
     if temperature is not None:
         params["temperature"] = temperature
     if effort:
@@ -67,7 +75,7 @@ def request_params(model: str, system: str, tools: list, messages: list, max_tok
 
 def run_question(client, model: str, question, toolsets: list, run_id: str, setup: str, repeat: int = 1,
                  temperature: float | None = None, max_steps: int = 12, max_tokens: int = DEFAULT_MAX_TOKENS,
-                 system: str = SYSTEM, effort: str | None = None) -> dict:
+                 system: str = SYSTEM, effort: str | None = None, cache: bool = False) -> dict:
     """One question, one run: returns the record that goes to the JSONL (without the verdict)."""
     tools = [t for ts in toolsets for t in ts.tools] + [ANSWER_TOOL]
     names = [t["name"] for t in tools]
@@ -76,7 +84,7 @@ def run_question(client, model: str, question, toolsets: list, run_id: str, setu
     messages = [{"role": "user", "content": question.question}]
     rec = {"run_id": run_id, "setup": setup, "question_id": question.id, "repeat": repeat, "model": model,
            "tags": list(getattr(question, "tags", []) or []), "effort": effort, "temperature": temperature,
-           "max_tokens": max_tokens, "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "steps": 0,
+           "max_tokens": max_tokens, "cache": cache, "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "steps": 0,
            "input_tokens": 0, "output_tokens": 0, "cache_read_tokens": 0, "cache_creation_tokens": 0,
            "tool_calls": {}, "sql_statements": 0, "sql_failed": 0, "graphql_calls": 0, "graphql_failed": 0,
            "mcp_calls": 0, "mcp_failed": 0, "stop_reasons": [], "answer": None, "error": None}
@@ -85,7 +93,7 @@ def run_question(client, model: str, question, toolsets: list, run_id: str, setu
     try:
         for _ in range(max_steps):
             rec["steps"] += 1
-            message = client.messages.create(**request_params(model, system, tools, messages, max_tokens, temperature, effort))
+            message = client.messages.create(**request_params(model, system, tools, messages, max_tokens, temperature, effort, cache))
             for k, v in _usage(message).items():
                 rec[k] += v
             stop = getattr(message, "stop_reason", None)

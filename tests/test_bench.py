@@ -169,6 +169,7 @@ def test_run_setup_a_and_b_with_fakes(tmp_path):
     assert [t["name"] for t in first["tools"]] == ["list_tables", "run_sql", "answer"] and first["system"] == agent.SYSTEM
     # no sampling parameters (current models answer them with a 400), the model's own effort, room for thinking
     assert "temperature" not in first and "output_config" not in first and first["max_tokens"] == agent.DEFAULT_MAX_TOKENS == 16000
+    assert "cache_control" not in first and r["cache"] is False                     # caching only when asked for (--cache)
     assert r["tags"] == ["hops:1"] and r["stop_reasons"] == ["tool_use", "tool_use", "tool_use"] and r["effort"] is None
     assert all(c["system"] == agent.SYSTEM for c in model.calls)
     # the tool result the model got back after the failing SQL was the error itself
@@ -283,6 +284,33 @@ def test_report_numbers_and_bootstrap_interval(tmp_path):
     assert report.main([str(p), "--out", str(out), "--factors", str(HERE.parent / "bench" / "factors.yaml")]) == 0 and out.exists()
 
 
+def test_report_keeps_cached_runs_apart_and_compares_each_setup_with_its_a(tmp_path):
+    recs = []
+    for q in ("q01", "q02", "q03"):
+        recs += [_rec("A", q, 1, "correct", 4000, 4, 0, 40, 20.0), _rec("B", q, 1, "correct", 9000, 3, 0, 30, 15.0),
+                 _rec("C", q, 1, "correct", 6000, 3, 0, 30, 15.0)]
+        for r in (_rec("A", q, 1, "correct", 4000, 4, 0, 40, 20.0), _rec("B", q, 1, "correct", 9000, 3, 0, 30, 15.0)):
+            r.update(cache=True, run_id=r["run_id"] + "-cache", input_tokens=1000, cache_read_tokens=r["tokens_total"] - 1100)
+            recs.append(r)
+    for r in recs:
+        r["model"] = "claude-opus-5-5"
+    p = tmp_path / "r.jsonl"
+    p.write_text("\n".join(json.dumps(r) for r in recs) + "\n")
+    loaded = report.load_results([p])
+    s = report.per_setup(loaded)
+    assert list(s) == ["A", "A+cache", "B", "B+cache", "C"] and all(v["runs"] == 3 for v in s.values())
+    assert report.comparisons(s) == [("A", "B"), ("A+cache", "B+cache"), ("A", "C")]           # like with like, never across
+    # cost at list prices: uncached at $4 in / $20 out, cached reads at $0.20
+    a = next(r for r in loaded if r["setup"] == "A" and not r.get("cache"))
+    b = next(r for r in loaded if r["setup"] == "B" and r.get("cache"))
+    assert a["cost_usd"] == pytest.approx((3900 * 4 + 100 * 20) / 1e6) and b["cost_usd"] == pytest.approx((1000 * 4 + 100 * 20 + 7900 * 0.2) / 1e6)
+    assert report.differences(loaded, "A", "C")["tokens_total"]["difference"] == 2000
+    md = report.markdown(loaded, {}, "x")
+    assert "## B against A" in md and "## B+cache against A+cache" in md and "## C against A" in md and "## C+cache" not in md
+    assert "| metric | questions | mean A | mean C | C − A | 95 % interval |" in md and "| model cost USD (list price) | 0.0176 " in md
+    assert "sav" not in md.lower()
+
+
 def test_mock_run_builds_both_files_and_the_report(tmp_path):
     from bench import mock_run
     assert mock_run.main(["--out", str(tmp_path), "--repeats", "2", "--date", "2026-10-26", "--report", str(tmp_path / "REPORT.md")]) == 0
@@ -304,6 +332,10 @@ def test_request_params_send_no_sampling_parameters_unless_asked():
     assert p == {"model": "m", "system": "sys", "tools": [], "messages": [], "max_tokens": 16000}
     assert agent.request_params("m", "s", [], [], 10, temperature=0.2, effort="high")["temperature"] == 0.2
     assert agent.request_params("m", "s", [], [], 10, effort="low")["output_config"] == {"effort": "low"}
+    # prompt caching: a breakpoint on the system prompt (tools + system) and the automatic one on the last block
+    c = agent.request_params("m", "sys", [], [], 10, cache=True)
+    assert c["system"] == [{"type": "text", "text": "sys", "cache_control": {"type": "ephemeral"}}] and c["cache_control"] == {"type": "ephemeral"}
+    assert "cache_control" not in p
 
 
 def test_the_real_sdk_accepts_the_request_and_its_responses_are_read(monkeypatch):
@@ -335,6 +367,12 @@ def test_the_real_sdk_accepts_the_request_and_its_responses_are_read(monkeypatch
     assert first["output_config"] == {"effort": "medium"} and first["max_tokens"] == 16000
     assert [t["name"] for t in first["tools"]] == ["list_tables", "run_sql", "answer"]
     assert bodies[1]["messages"][1]["content"][0] == {"signature": "sig-1", "thinking": "", "type": "thinking"}   # passed back as it came
+    assert "cache_control" not in first and rec["cache"] is False
+    # with caching on, the SDK sends the system prompt as a cached block and the top-level automatic breakpoint
+    bodies.clear()
+    rec = agent.run_question(client, "claude-opus-5-5", q, [tools.SqlTools(seed_execute(), "r")], "r", "A", cache=True)
+    assert rec["cache"] is True and rec["steps"] == 2 and all(b["cache_control"] == {"type": "ephemeral"} for b in bodies)
+    assert all(b["system"] == [{"type": "text", "text": agent.SYSTEM, "cache_control": {"type": "ephemeral"}}] for b in bodies)
 
 
 def test_a_refusal_is_recorded_as_an_error_with_its_category():
@@ -380,7 +418,7 @@ def test_dry_run_prints_the_plan_and_calls_nothing(monkeypatch, tmp_path, capsys
     text = capsys.readouterr().out
     assert text.startswith("DRY RUN: nothing is called") and "Setups, one after the other: A, B   repeats: 1   questions: 5   runs: 10" in text
     assert "Model: claude-opus-5-5" in text and "temperature: not sent" in text
-    assert "before any model call: the seed check" in text
+    assert "before any model call: the seed check" in text and "Prompt caching: off" in text
     for qid in ("q01", "q10", "q17", "q19", "q21"):
         assert f"  {qid} [" in text
     assert "q02" not in text
@@ -396,6 +434,13 @@ def test_dry_run_prints_the_plan_and_calls_nothing(monkeypatch, tmp_path, capsys
     other = capsys.readouterr().out
     assert "model cost not estimated" in other and "pass --price-in and --price-out" in other and "questions: 2" in other
     assert "Seed check: skipped" in other
+    # setup C and prompt caching: C's tools and what it leaves out, the cached files, reads and writes in the estimate
+    assert runmod.main(["--setups", "A,C", "--repeats", "1", "--limit", "1", "--dry-run", "--cache", "--out", str(tmp_path)]) == 0
+    cached = capsys.readouterr().out
+    assert "Prompt caching: on (--cache)" in cached and "-A-cache.jsonl" in cached and "-C-cache.jsonl" in cached
+    assert "setup C's list (mcp_tools.QA_TOOLS)" in cached and "left out (read-only, not in setup C's list): " in cached
+    assert "of them read from the cache" in cached and "cache reads $0.20" in cached and "Setup B" not in cached
+    assert "KRUSGRAPH_TOKEN: MISSING" in cached and "sav" not in cached.lower() and not list(tmp_path.iterdir())
     assert runmod.main(["--setups", "A", "--repeats", "1", "--limit", "2", "--model", "x", "--price-in", "1", "--price-out", "5", "--dry-run"]) == 0
     assert "given on the command line" in capsys.readouterr().out
 
@@ -404,7 +449,8 @@ def test_setups_and_question_selection(monkeypatch):
     from bench import run as runmod
     from types import SimpleNamespace as NS
     assert runmod.setups_from(NS(setups="b,a", setup=None)) == ["A", "B"] and runmod.setups_from(NS(setups=None, setup="B")) == ["B"]
-    for bad in (NS(setups="C", setup=None), NS(setups=None, setup=None), NS(setups=",", setup=None)):
+    assert runmod.setups_from(NS(setups="c,a,b,a", setup=None)) == ["A", "B", "C"]
+    for bad in (NS(setups="D", setup=None), NS(setups=None, setup=None), NS(setups=",", setup=None)):
         with pytest.raises(SystemExit):
             runmod.setups_from(bad)
     qs = load_questions()
@@ -428,18 +474,30 @@ def test_setup_b_connects_to_krusgraph_with_the_token_and_a_only_gets_sql(monkey
     made, seen = [], []
 
     class Mcp(FakeMcpTools):
-        def __init__(self, url, token, reserved=()):
-            made.append({"url": url, "token": token, "reserved": list(reserved)})
-            super().__init__({"join_path": lambda a: "{}"})
+        def __init__(self, url, token, reserved=(), allow=None):
+            from bench.mcp_tools import offered
+            made.append({"url": url, "token": token, "reserved": list(reserved), "allow": allow})
+            super().__init__({"join_path": lambda a: "{}", "lineage": lambda a: "{}"})
+            self.tools, self.not_offered, self.missing = offered(self.tools, allow)
 
         def start(self):
             return self
     monkeypatch.setattr("bench.mcp_tools.McpTools", Mcp)
-    monkeypatch.setattr(runmod, "run", lambda client, setup, model, toolsets, *a, **k: seen.append((setup, client, [n for ts in toolsets for n in (t["name"] for t in ts.tools)])) or [])
-    assert runmod.main(["--setups", "A,B", "--repeats", "1", "--limit", "1", "--out", str(tmp_path)]) == 0
-    assert seen[0] == ("A", "client", ["list_tables", "run_sql"])                                   # A: the two SQL tools, nothing else
-    assert seen[1][0] == "B" and seen[1][2] == ["list_tables", "run_sql", "join_path"]
-    assert made == [{"url": "https://krusgraph.com/mcp", "token": "kg-token", "reserved": ["list_tables", "run_sql", "answer"]}]
+    monkeypatch.setattr(runmod, "run", lambda client, setup, model, toolsets, *a, **k: seen.append((setup, client, [n for ts in toolsets for n in (t["name"] for t in ts.tools)], a[3], k["cache"])) or [])
+    assert runmod.main(["--setups", "A,B,C", "--repeats", "1", "--limit", "1", "--out", str(tmp_path)]) == 0
+    assert seen[0][:3] == ("A", "client", ["list_tables", "run_sql"])                              # A: the two SQL tools, nothing else
+    assert seen[1][0] == "B" and seen[1][2] == ["list_tables", "run_sql", "join_path", "lineage"]   # B: every read-only tool
+    assert seen[2][0] == "C" and seen[2][2] == ["list_tables", "run_sql", "join_path"]              # C: only those in QA_TOOLS
+    from bench.mcp_tools import QA_TOOLS
+    reserved = ["list_tables", "run_sql", "answer"]
+    assert made == [{"url": "https://krusgraph.com/mcp", "token": "kg-token", "reserved": reserved, "allow": None},
+                    {"url": "https://krusgraph.com/mcp", "token": "kg-token", "reserved": reserved, "allow": QA_TOOLS}]
+    assert [s[4] for s in seen] == [False, False, False] and not any(s[3].endswith("-cache") for s in seen)
+    # --cache: the same setups with prompt caching, into files of their own
+    seen.clear()
+    made.clear()
+    assert runmod.main(["--setups", "A,C", "--repeats", "1", "--limit", "1", "--out", str(tmp_path), "--cache"]) == 0
+    assert [(s[0], s[4]) for s in seen] == [("A", True), ("C", True)] and all(s[3].endswith(f"-{s[0]}-cache") for s in seen)
     # the token never goes to a plain-http URL
     monkeypatch.setenv("KRUSGRAPH_MCP_URL", "http://krusgraph.com/mcp")
     made.clear()
@@ -485,6 +543,11 @@ def test_check_url_and_split_tools():
     kept, excluded, shadowed = split_tools(listed, reserved=["list_tables", "run_sql", "answer"])
     assert kept == [{"name": "plan_backend", "description": "d", "input_schema": {"type": "object"}}]
     assert excluded == ["create_views", "no_annotations"] and shadowed == ["list_tables"]            # unmarked counts as writing
+    # setup C narrows the kept tools to a list; B (allow None) offers them all
+    from bench.mcp_tools import offered
+    kept = [{"name": n} for n in ("plan_backend", "lineage", "join_path")]
+    assert offered(kept) == (kept, [], [])
+    assert offered(kept, ("join_path", "plan_backend", "gone")) == ([{"name": "plan_backend"}, {"name": "join_path"}], ["lineage"], ["gone"])
 
 
 def test_mcp_tools_against_a_local_mcp_server():
@@ -553,6 +616,20 @@ def test_mcp_tools_against_a_local_mcp_server():
         assert err is True and text.startswith("refused:") and "create_backend" not in ran        # never reached the server
         assert m.calls == {"plan_backend": 1, "failing": 1, "create_backend": 1} and m.failed == {"failing": 1, "create_backend": 1}
         assert set(seen) == {b"Bearer test-only-token"}
+        # setup C: only the listed tools are offered, the rest are refused here like the writing ones
+        c = McpTools(f"http://127.0.0.1:{port}/mcp", "test-only-token", timeout=20, reserved=reserved_names(), allow=("plan_backend", "gone")).start()
+        try:
+            assert [t["name"] for t in c.tools] == ["plan_backend"] and c.not_offered == ["failing"] and c.missing == ["gone"]
+            text, err = c.call("failing", {}, "q01", 1)
+            assert err is True and text == "refused: failing is not available in this run"
+        finally:
+            c.close()
+        none = McpTools(f"http://127.0.0.1:{port}/mcp", "test-only-token", timeout=20, reserved=reserved_names(), allow=("gone",))
+        try:
+            with pytest.raises(RuntimeError, match="none of the tools this setup uses: gone"):
+                none.start()
+        finally:
+            none.close()
     finally:
         m.close()
         server.should_exit = True
@@ -583,6 +660,31 @@ def test_estimate_uses_the_snapshot_and_states_its_assumptions():
     assert e["prices"] == (4.0, 20.0) and "pricing" in e["price_source"]
     assert e["total"]["cost_usd"][0] == pytest.approx(e["setups"]["A"]["cost_usd"][0] + e["setups"]["B"]["cost_usd"][0])
     assert "cost_usd" not in estimate.estimate(["A"], qs, 1, "unknown-model")["setups"]["A"]
+
+
+def test_estimate_with_prompt_caching_and_setup_c():
+    from bench import estimate
+    from bench.mcp_tools import QA_TOOLS
+    lists = estimate.tool_lists()
+    b, c = [t["name"] for t in lists["B"]], [t["name"] for t in lists["C"]]
+    assert set(c) == {"list_tables", "run_sql", "answer", *QA_TOOLS} and lists["C_missing"] == []    # every listed tool is in the snapshot
+    assert set(lists["C_left_out"]) == set(b) - set(c) and c[:2] == ["list_tables", "run_sql"] and c[-1] == "answer"
+    qs = load_questions()[:5]
+    plain = estimate.estimate(["A", "B", "C"], qs, 1, "claude-opus-5-5")
+    cached = estimate.estimate(["A", "B", "C"], qs, 1, "claude-opus-5-5", cache=True)
+    for s in ("A", "B", "C"):
+        p, k = plain["setups"][s], cached["setups"][s]
+        assert p["input"] == k["input"]                                                     # the same prompt tokens either way
+        for i in (0, 1):
+            assert p["uncached"][i] == pytest.approx(p["input"][i]) and p["cache_read"][i] == p["cache_write"][i] == 0
+            assert k["uncached"][i] == 0 and k["cache_read"][i] + k["cache_write"][i] == pytest.approx(k["input"][i])
+            assert k["cost_usd"][i] < p["cost_usd"][i]
+    a_tok, b_tok, c_tok = (plain["setups"][s]["tool_tokens"][0] for s in "ABC")
+    assert a_tok < c_tok < b_tok and plain["setups"]["C"]["cost_usd"][1] < plain["setups"]["B"]["cost_usd"][1]
+    assert plain["prices"] == (4.0, 20.0) and cached["cache_read_price"] == 0.20 and cached["cache"] is True
+    given = estimate.estimate(["A"], qs, 1, "some-model", price_in=1.0, price_out=5.0, cache=True)
+    assert given["cache_read_price"] == pytest.approx(0.1) and "0.1 x input" in given["price_source"]
+    assert estimate.cost_usd((4.0, 20.0, 0.2), 1e6, 1e6, 1e6, 1e6) == pytest.approx(4 + 20 + 0.2 + 5)
 
 
 def test_fabric_backend_is_pinned_to_one_commit_everywhere():

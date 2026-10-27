@@ -1,5 +1,9 @@
-"""Run the rig: python -m bench.run --setups A|B|A,B [--model claude-opus-5-5] [--repeats 3] [--limit N | --only q01,q17]
-[--dry-run]
+"""Run the rig: python -m bench.run --setups A|B|C|A,B|A,B,C [--model claude-opus-5-5] [--repeats 3]
+[--limit N | --only q01,q17] [--cache] [--dry-run]
+
+Setup A has the two SQL tools; B adds every read-only Krusgraph tool; C adds only the read-only Krusgraph tools that
+help answer a question (mcp_tools.QA_TOOLS). --cache turns on prompt caching (agent.request_params) for every setup in
+the run; its files get "-cache" in the name and the report keeps cached and uncached runs apart.
 
 --dry-run prints exactly which questions and setups would run, in which order, with which tools, which environment
 variables are missing, and a cost and time estimate (labelled as one, see bench/estimate.py). It calls nothing.
@@ -13,10 +17,10 @@ Environment (never a file in the repo):
   FABRIC_SQL_DATABASE      the lakehouse name (default demo_lh)
   FABRIC_SQL_TOKEN         an Entra access token for https://database.windows.net/
   FABRIC_SCHEMA            schema with the shop tables (default shop)
-  KRUSGRAPH_MCP_URL        setup B only (default https://krusgraph.com/mcp; must be https)
-  KRUSGRAPH_TOKEN          setup B only: the user's bearer token for Krusgraph
-Results: bench/results/<date>-<setup>.jsonl, one line per question and repeat, judged as they complete. With two setups
-they run one after the other, A first, each into its own file."""
+  KRUSGRAPH_MCP_URL        setups B and C only (default https://krusgraph.com/mcp; must be https)
+  KRUSGRAPH_TOKEN          setups B and C only: the user's bearer token for Krusgraph
+Results: bench/results/<date>-<setup>[-cache].jsonl, one line per question and repeat, judged as they complete. With
+several setups they run one after the other, A first, each into its own file."""
 from __future__ import annotations
 
 import argparse
@@ -43,12 +47,13 @@ def write_record(path: Path, rec: dict) -> None:
 
 def run(client, setup: str, model: str, toolsets: list, questions, repeats: int, out: Path, run_id: str,
         temperature: float | None = None, max_steps: int = 12, progress=print, max_tokens: int = DEFAULT_MAX_TOKENS,
-        effort: str | None = None) -> list[dict]:
+        effort: str | None = None, cache: bool = False) -> list[dict]:
     """The loop the CLI and the tests share: every question, in order, `repeats` times per question."""
     records = []
     for repeat in range(1, repeats + 1):
         for q in questions:
-            rec = run_question(client, model, q, toolsets, run_id, setup, repeat, temperature, max_steps, max_tokens, effort=effort)
+            rec = run_question(client, model, q, toolsets, run_id, setup, repeat, temperature, max_steps, max_tokens,
+                               effort=effort, cache=cache)
             rec.update(verdict_for(q, rec))
             write_record(out, rec)
             records.append(rec)
@@ -59,12 +64,12 @@ def run(client, setup: str, model: str, toolsets: list, questions, repeats: int,
 def setups_from(a) -> list[str]:
     raw = a.setups or a.setup
     if not raw:
-        raise SystemExit("give --setups A, B or A,B")
+        raise SystemExit("give --setups A, B, C or a list such as A,B,C")
     out = [s.strip().upper() for s in raw.split(",") if s.strip()]
-    bad = [s for s in out if s not in ("A", "B")]
+    bad = [s for s in out if s not in ("A", "B", "C")]
     if bad or not out:
-        raise SystemExit(f"--setups takes A, B or A,B (got {raw!r})")
-    return sorted(set(out))                                             # A before B, each once
+        raise SystemExit(f"--setups takes A, B, C or a list such as A,B,C (got {raw!r})")
+    return sorted(set(out))                                             # A before B before C, each once
 
 
 def select_questions(questions, only: str | None, limit: int | None):
@@ -83,15 +88,15 @@ def select_questions(questions, only: str | None, limit: int | None):
 
 
 def environment(setups: list[str]) -> dict[str, bool]:
-    names = ["ANTHROPIC_API_KEY", "FABRIC_SQL_SERVER", "FABRIC_SQL_TOKEN"] + (["KRUSGRAPH_TOKEN"] if "B" in setups else [])
+    names = ["ANTHROPIC_API_KEY", "FABRIC_SQL_SERVER", "FABRIC_SQL_TOKEN"] + (["KRUSGRAPH_TOKEN"] if {"B", "C"} & set(setups) else [])
     return {k: bool(os.environ.get(k)) for k in names}
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="python -m bench.run", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--setups", default=None, help="A, B or A,B (run one after the other, A first)")
-    ap.add_argument("--setup", choices=["A", "B"], default=None, help="one setup (same as --setups A or --setups B)")
-    ap.add_argument("--model", default=DEFAULT_MODEL, help=f"Anthropic model id (default {DEFAULT_MODEL}); the same for A and B")
+    ap.add_argument("--setups", default=None, help="A, B, C or a list such as A,B,C (run one after the other, A first)")
+    ap.add_argument("--setup", choices=["A", "B", "C"], default=None, help="one setup (same as --setups A, B or C)")
+    ap.add_argument("--model", default=DEFAULT_MODEL, help=f"Anthropic model id (default {DEFAULT_MODEL}); the same for every setup")
     ap.add_argument("--repeats", type=int, default=3)
     ap.add_argument("--limit", type=int, default=None, help="only the first N questions in file order")
     ap.add_argument("--only", default=None, help="comma-separated question ids")
@@ -100,7 +105,8 @@ def main(argv=None) -> int:
     ap.add_argument("--max-steps", type=int, default=12)
     ap.add_argument("--questions", default=str(HERE / "questions.yaml"))
     ap.add_argument("--out", default=str(HERE / "results"))
-    ap.add_argument("--run-id", default=None, help="default <date>-<setup>; with two setups, <run-id>-<setup>")
+    ap.add_argument("--run-id", default=None, help="default <date>-<setup>[-cache]; with several setups, <run-id>-<setup>")
+    ap.add_argument("--cache", action="store_true", help="prompt caching on (tool list, system prompt, conversation so far)")
     ap.add_argument("--dry-run", action="store_true", help="print what would run and an estimate; call nothing")
     ap.add_argument("--price-in", type=float, default=None, help="USD per million input tokens, for the estimate")
     ap.add_argument("--price-out", type=float, default=None, help="USD per million output tokens, for the estimate")
@@ -111,13 +117,15 @@ def main(argv=None) -> int:
         raise SystemExit("--repeats must be 1 or more")
     questions = select_questions(load_questions(a.questions), a.only, a.limit)
     day = date.today().isoformat()
-    run_ids = {s: (a.run_id if a.run_id and len(setups) == 1 else f"{a.run_id}-{s}" if a.run_id else f"{day}-{s}") for s in setups}
+    suffix = "-cache" if a.cache else ""
+    run_ids = {s: (a.run_id if a.run_id and len(setups) == 1 else f"{a.run_id}-{s}" if a.run_id else f"{day}-{s}{suffix}") for s in setups}
     url = os.environ.get("KRUSGRAPH_MCP_URL", DEFAULT_URL)
     env = environment(setups)
+    krusgraph = [s for s in setups if s in ("B", "C")]
 
     if a.dry_run:
         from .estimate import estimate, plan_text
-        est = estimate(setups, questions, a.repeats, a.model, a.price_in, a.price_out)
+        est = estimate(setups, questions, a.repeats, a.model, a.price_in, a.price_out, cache=a.cache)
         print(plan_text(setups, questions, a.repeats, a.model, env, Path(a.out), run_ids, a.effort, a.max_tokens, url, est,
                         seed_check=not a.skip_seed_check), end="")
         return 0
@@ -126,7 +134,7 @@ def main(argv=None) -> int:
     if missing:
         print("missing environment: " + ", ".join(missing), file=sys.stderr)
         return 2
-    if "B" in setups:
+    if krusgraph:
         from .mcp_tools import check_url
         try:
             check_url(url)
@@ -158,18 +166,22 @@ def main(argv=None) -> int:
         execute = sqlserver_execute(os.environ["FABRIC_SQL_SERVER"], os.environ.get("FABRIC_SQL_DATABASE", "demo_lh"), os.environ["FABRIC_SQL_TOKEN"])
         toolsets = [SqlTools(execute, run_id)]
         mcp = None
-        if setup == "B":
+        if setup in krusgraph:
             from .estimate import reserved_names
-            from .mcp_tools import McpTools
-            mcp = McpTools(url, os.environ["KRUSGRAPH_TOKEN"], reserved=reserved_names()).start()
+            from .mcp_tools import QA_TOOLS, McpTools
+            mcp = McpTools(url, os.environ["KRUSGRAPH_TOKEN"], reserved=reserved_names(),
+                           allow=QA_TOOLS if setup == "C" else None).start()
             toolsets.append(mcp)
-            print(f"Krusgraph tools (read-only): {', '.join(t['name'] for t in mcp.tools)}")
+            print(f"{setup}: Krusgraph tools (read-only): {', '.join(t['name'] for t in mcp.tools)}")
             print(f"left out (they write): {', '.join(mcp.excluded) or 'none'}; "
                   f"left out (setup A's tool of the same name is kept): {', '.join(mcp.shadowed) or 'none'}")
+            if setup == "C":
+                print(f"left out (not in setup C's list): {', '.join(mcp.not_offered) or 'none'}"
+                      + (f"; in C's list but not on the server: {', '.join(mcp.missing)}" if mcp.missing else ""))
         out = Path(a.out) / f"{run_id}.jsonl"
         try:
             records = run(client, setup, a.model, toolsets, questions, a.repeats, out, run_id, None, a.max_steps,
-                          max_tokens=a.max_tokens, effort=a.effort)
+                          max_tokens=a.max_tokens, effort=a.effort, cache=a.cache)
         finally:
             getattr(execute, "close", lambda: None)()
             if mcp:

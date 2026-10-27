@@ -1,9 +1,10 @@
 # bench: agent efficiency with and without Krusgraph
 
-A measurement rig. It runs the same agent over the shop lakehouse twice — once with SQL tools only (setup A), once
-with the same SQL tools plus Krusgraph's read-only MCP tools (setup B) — and records what each answer cost. It makes no
-claim either way; the report prints what was measured, with a confidence interval, and whether the data separates the
-two setups at all.
+A measurement rig. It runs the same agent over the shop lakehouse with SQL tools only (setup A), with the same SQL
+tools plus Krusgraph's read-only MCP tools (setup B), and optionally with the SQL tools plus only the Krusgraph tools
+that help answer a question (setup C), and records what each answer cost; `--cache` runs any of them with prompt
+caching. It makes no claim either way; the report prints what was measured, with a confidence interval, and whether the
+data separates the setups at all.
 
 Status (26 October 2026): built and tested against mocks only — a replaying fake model, a SQLite stand-in for the
 endpoint, fake MCP tools, the real Anthropic SDK with a mock transport, and the real MCP client against a local MCP
@@ -16,16 +17,26 @@ server on 127.0.0.1. Not yet run against a model, a workspace or krusgraph.com.
 | `questions.yaml` | 25 questions over the shop schema (`fabric_backend.seed`): 8 with one relationship step, 8 with two or three, 8 that need the link `orders.ship_to_id → addresses` (5 of them, q21–q25, with further hops, where joining addresses through the customer gives another answer), 1 that needs the composite key of `order_items` |
 | `truth.py` | computes every answer from `seed.rows()` in Python; nothing is typed in. `through_customer()` computes the wrong-path answers the tests compare against; `check_lakehouse()` compares the lakehouse's tables with the seed rows, row for row, before a run |
 | `tools.py` | `list_tables(schema)`, `run_sql(query)`: read-only T-SQL on the SQL analytics endpoint; one statement that starts with SELECT or WITH, and no word anywhere that starts a writing, waiting or database-switching statement (T-SQL runs `SELECT 1 DROP TABLE t` as two statements); endpoint errors go to the model verbatim; every statement tagged `/* bench:<run_id>:<question_id>:r<repeat> */` |
-| `mcp_tools.py` | Krusgraph's tools over MCP (streamable HTTP, MCP SDK 2.x) with the user's bearer token, sent only to https; keeps the tools the server marks read-only, leaves out the creating tools (eight at fabric-backend 5adace8) and Krusgraph's own `list_tables` (A's is kept, names stay unique); counts calls and failures |
-| `agent.py` | the loop: Anthropic Messages API with tool use, structured final answer through an `answer` tool, usage and stop reasons from the API. No sampling parameters (current models answer `temperature` with a 400), `max_tokens` 16 000 per response (thinking counts toward it), effort the model's own unless `--effort` is given |
-| `run.py` | runs questions × repeats for one or both setups and writes `results/<date>-<setup>.jsonl`, judged with fabric-eval's `judge` as it goes; first the seed check, which stops the run before any model call if the lakehouse differs from the seed (`--skip-seed-check` leaves it out); `--dry-run` prints the plan and an estimate and calls nothing |
-| `estimate.py` | the dry run's estimate, from stated assumptions; `krusgraph_tools.json` is the tool-list snapshot it uses for setup B (regenerate with `python -m bench.estimate --snapshot --note "main at <commit>"` where `fabric-backend[server]` is installed at that commit, and move the fabric-backend pin in `pyproject.toml`, `.github/workflows/ci.yml` and step 1 below to the same commit; a test checks the four agree) |
+| `mcp_tools.py` | Krusgraph's tools over MCP (streamable HTTP, MCP SDK 2.x) with the user's bearer token, sent only to https; keeps the tools the server marks read-only, leaves out the creating tools (eight at fabric-backend 5adace8) and Krusgraph's own `list_tables` (A's is kept, names stay unique); for setup C only the tools in `QA_TOOLS`; counts calls and failures |
+| `agent.py` | the loop: Anthropic Messages API with tool use, structured final answer through an `answer` tool, usage and stop reasons from the API. No sampling parameters (current models answer `temperature` with a 400), `max_tokens` 16 000 per response (thinking counts toward it), effort the model's own unless `--effort` is given; with `--cache` a cache breakpoint on the system prompt (tools and system) and the API's automatic one on the conversation |
+| `run.py` | runs questions × repeats for setups A, B and C (any of them, A first) and writes `results/<date>-<setup>.jsonl` (`…-cache.jsonl` with `--cache`), judged with fabric-eval's `judge` as it goes; first the seed check, which stops the run before any model call if the lakehouse differs from the seed (`--skip-seed-check` leaves it out); `--dry-run` prints the plan and an estimate and calls nothing |
+| `estimate.py` | the dry run's estimate, from stated assumptions, with cache reads and writes priced when `--cache` is given; `krusgraph_tools.json` is the tool-list snapshot it uses for setups B and C (regenerate with `python -m bench.estimate --snapshot --note "main at <commit>"` where `fabric-backend[server]` is installed at that commit, and move the fabric-backend pin in `pyproject.toml`, `.github/workflows/ci.yml` and step 1 below to the same commit; a test checks the four agree) |
 | `fabric_metrics.py` | afterwards: CPU time and data scanned per tagged statement from `queryinsights.exec_requests_history`, attached to the results |
-| `report.py` | `REPORT.md`: share correct, a table per question tag, median and spread per correct answer, B − A with a bootstrap interval, optional energy/CO₂ from `factors.yaml`, limits |
+| `report.py` | `REPORT.md`: share correct, a table per question tag, median and spread per correct answer (model cost at list prices included), each setup against A at the same caching setting (B − A, C − A, B+cache − A+cache …) with a bootstrap interval, optional energy/CO₂ from `factors.yaml`, limits |
 | `factors.yaml` | conversion factors with source and date; empty until a source exists |
 
 Setup B is A plus Krusgraph's read-only tools, nothing else: same model, same settings, same system prompt (the tool
-list is the only difference), same questions in the same order.
+list is the only difference), same questions in the same order. Setup C is A plus only the seven read-only Krusgraph
+tools that help answer a question (`plan_backend`, `join_path`, `suggest_relationships`, `sample_rows`,
+`describe_backend`, `query_graphql`, `answer_query_draft`; `QA_TOOLS` in `mcp_tools.py`): B's other tools draft
+notebooks, views, models, dbt files and app prompts, and B resends all of them on every step. C asks how much of B's
+cost is that list. The list is a judgement made before any run, not something the data chose.
+
+`--cache` runs the chosen setups with prompt caching: the tool list and the system prompt are written to the cache on
+the setup's first step and read from it afterwards, and the conversation so far is read from it on every later step.
+Without it every step pays the full input price for all of that, which real clients usually avoid; with it B's long
+tool list costs far less per step. Cached runs are their own setups in the report (`A+cache`, `B+cache`, `C+cache`)
+and are compared only with `A+cache`.
 
 ## A first small run tonight
 
@@ -93,6 +104,21 @@ The `--window` on the B file counts the statements in that time span that carry 
 of the endpoint (its `plan_backend`, `validate_plan`, `sample_rows`, `suggest_relationships`). They belong to B's cost
 and are reported separately, because they cannot be attributed to a question.
 
+### Setup C and prompt caching (optional, after the small run)
+
+```bash
+# setup C next to A and B, then the same three with prompt caching (files <date>-<setup>-cache.jsonl)
+python -m bench.run --setups A,B,C --repeats 1 --only q01,q10,q17,q19,q21 --effort medium --dry-run
+python -m bench.run --setups A,B,C --repeats 1 --only q01,q10,q17,q19,q21 --effort medium
+python -m bench.run --setups A,B,C --repeats 1 --only q01,q10,q17,q19,q21 --effort medium --cache
+# fabric metrics as above, with --window for the C files as for B; then one report over all six files
+python -m bench.report bench/results/<date>-{A,B,C}.jsonl bench/results/<date>-{A,B,C}-cache.jsonl
+```
+
+Run them back to back on the same day, as with A and B. The report compares B and C with A, and `B+cache` and
+`C+cache` with `A+cache`; the row "model cost USD (list price)" is the one to read for caching, since the token rows
+count a token read from the cache like any other.
+
 ### Expected time and cost (estimate, not a measurement)
 
 From the dry run on 26 October 2026, at Claude Opus 5.5 list prices ($4 input / $20 output per million tokens, from
@@ -102,13 +128,20 @@ on it):
 | run | agent runs | model cost | wall time |
 | --- | --- | --- | --- |
 | small (5 questions × 1 repeat × A, B) | 10 | about $0.9 – $7 | 2 – 18 minutes, plus the Fabric metrics wait |
+| small × A, B, C | 15 | about $1.2 – $11 | 3 – 28 minutes |
+| small × A, B, C with `--cache` | 15 | about $0.3 – $5 | 3 – 28 minutes |
 | full (25 questions × 3 repeats × A, B) | 150 | about $13 – $102 | 0.5 – 4.4 hours |
+| full × A, B, C | 225 | about $18 – $158 | 0.7 – 6.9 hours |
+| full × A, B, C with `--cache` | 225 | about $4 – $77 | 0.7 – 6.9 hours |
 
-The range is wide because it rests on assumptions (bench/estimate.py: 3–6 steps per run in A, 4–8 in B, tool results
-of 300–3 000 characters per step in A and 600–6 000 in B, 150–1 500 output tokens per step including thinking, 3–15 s
-per step, no prompt caching). Setup B resends its tool list (about 8 700–11 700 tokens, against A's 300–400) on every
-step, which is most of the difference in input. The Fabric side is the capacity's running time for that long; its
-CU use is not estimated. After the small run, the medians in the JSONL records replace these assumptions.
+The range is wide because it rests on assumptions (bench/estimate.py: 3–6 steps per run in A, 4–8 in B and C, tool
+results of 300–3 000 characters per step in A and 600–6 000 in B and C, 150–1 500 output tokens per step including
+thinking, 3–15 s per step). Setup B resends its tool list (about 8 700–11 700 tokens, against A's 300–400 and C's
+2 400–3 300) on every step, which is most of the difference in input. With `--cache` those tokens are read from the
+cache at $0.20 per million on Claude Opus 5.5 (a twentieth of the input price) after the setup's first step, and each
+step's new content is written to it once at 1.25 × the input price; the estimate counts both. The Fabric side is the
+capacity's running time for that long; its CU use is not estimated. After the small run, the medians in the JSONL
+records replace these assumptions.
 
 ## Filling in factors.yaml
 
