@@ -1,5 +1,5 @@
 {
- "source": "fabric_backend.server tools/list, fabric-backend 0.7.0, main at 10cf219",
+ "source": "fabric_backend.server tools/list, fabric-backend 0.7.0, main at 1750b09",
  "generated": "2026-10-28",
  "tools": [
   {
@@ -18,7 +18,7 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      }
@@ -37,18 +37,18 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -65,12 +65,12 @@
        }
       ],
       "default": null,
-      "description": "Table names or glob patterns narrowing the answer; the plan still covers the whole schema. Default all. Example: [\"orders\", \"sales_*\"].",
+      "description": "Table names or globs to show. Default all. Example: [\"sales_*\"].",
       "title": "Tables"
      },
      "detail": {
       "default": "auto",
-      "description": "\"auto\" (default: full up to 60 tables, else summary), \"full\" or \"summary\". Example: \"summary\".",
+      "description": "\"auto\" (default: full up to 60 tables, else summary), \"full\" or \"summary\".",
       "title": "Detail",
       "type": "string"
      }
@@ -90,18 +90,18 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -121,7 +121,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -138,7 +138,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "tables": {
@@ -154,12 +154,12 @@
        }
       ],
       "default": null,
-      "description": "Table names or glob patterns narrowing the answer; the plan still covers the whole schema. Default all. Example: [\"orders\", \"sales_*\"].",
+      "description": "Table names or globs to show. Default all. Example: [\"sales_*\"].",
       "title": "Tables"
      },
      "detail": {
       "default": "auto",
-      "description": "\"auto\" (default: full up to 60 tables, else summary), \"full\" or \"summary\". Example: \"summary\".",
+      "description": "\"auto\" (default: full up to 60 tables, else summary), \"full\" or \"summary\".",
       "title": "Detail",
       "type": "string"
      },
@@ -185,18 +185,18 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -216,7 +216,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -233,12 +233,12 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "max_items": {
       "default": 60,
-      "description": "Cap on counting queries (one per key and relationship), 1\u2013200. Default 60. Example: 120.",
+      "description": "Cap on counting queries (one per key and relationship), 1\u2013200. Default 60.",
       "title": "Max Items",
       "type": "integer"
      }
@@ -254,22 +254,22 @@
   },
   {
    "name": "review_plan",
-   "description": "Builds a review file of the plan: each key and relationship with a review status (proposed, accepted, rejected,\nopen) and a check status (not_checked, passed, failed, stale), plus a short Markdown report. Requires workspace\nand source. Returns JSON with the file, the report and what needs attention first, no row values. Changes\nnothing in Fabric. Errors: {error, kind, hint}.",
+   "description": "Builds a review file of the plan: each key and relationship with a review status and a check status, plus a\nMarkdown report. Requires workspace and source. Returns JSON with the file, the report and what needs attention\nfirst, no row values. Changes nothing. Errors: {error, kind, hint}.",
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -289,7 +289,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -306,7 +306,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "decisions": {
@@ -345,7 +345,7 @@
      },
      "validate": {
       "default": false,
-      "description": "true runs validate_plan's counting queries and includes the counts; false (default) reads metadata only. Example: true.",
+      "description": "true runs validate_plan's counting queries and includes the counts; false (default) reads metadata only.",
       "title": "Validate",
       "type": "boolean"
      },
@@ -362,12 +362,12 @@
        }
       ],
       "default": null,
-      "description": "Table names or glob patterns narrowing the answer; the plan still covers the whole schema. Default all. Example: [\"orders\", \"sales_*\"].",
+      "description": "Table names or globs to show. Default all. Example: [\"sales_*\"].",
       "title": "Tables"
      },
      "max_items": {
       "default": 60,
-      "description": "Cap on counting queries (one per key and relationship), 1\u2013200. Default 60. Example: 120.",
+      "description": "Cap on counting queries (one per key and relationship), 1\u2013200. Default 60.",
       "title": "Max Items",
       "type": "integer"
      }
@@ -387,12 +387,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -403,7 +403,7 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -415,7 +415,7 @@
      },
      "show_personal_data": {
       "default": false,
-      "description": "true includes columns named like personal data (name, e-mail, phone, address, id number, birth date); false (default) masks or omits them. Example: true.",
+      "description": "true includes columns named like personal data; false (default) masks or omits them.",
       "title": "Show Personal Data",
       "type": "boolean"
      }
@@ -436,12 +436,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -452,7 +452,7 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -478,7 +478,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -495,7 +495,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "tables": {
@@ -537,12 +537,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -554,7 +554,7 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -574,7 +574,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -591,7 +591,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "tables": {
@@ -607,7 +607,7 @@
        }
       ],
       "default": null,
-      "description": "Exact table names to include; the plan still covers the whole schema. Default all. Example: [\"orders\", \"customers\"].",
+      "description": "Exact table names to include. Default all.",
       "title": "Tables"
      },
      "relationships": {
@@ -632,12 +632,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -649,7 +649,7 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -669,7 +669,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -686,7 +686,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "tables": {
@@ -702,7 +702,7 @@
        }
       ],
       "default": null,
-      "description": "Exact table names to include; the plan still covers the whole schema. Default all. Example: [\"orders\", \"customers\"].",
+      "description": "Exact table names to include. Default all.",
       "title": "Tables"
      }
     },
@@ -721,12 +721,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -737,7 +737,7 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -757,7 +757,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -774,7 +774,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "tables": {
@@ -790,12 +790,12 @@
        }
       ],
       "default": null,
-      "description": "Exact table names to include; the plan still covers the whole schema. Default all. Example: [\"orders\", \"customers\"].",
+      "description": "Exact table names to include. Default all.",
       "title": "Tables"
      },
      "dry_run": {
       "default": true,
-      "description": "true (default) returns what would be created and the REST calls, changing nothing; false creates or updates. Example: false.",
+      "description": "true (default) returns what would be created and the REST calls, changing nothing; false creates or updates.",
       "title": "Dry Run",
       "type": "boolean"
      }
@@ -816,12 +816,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -833,7 +833,7 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -853,7 +853,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -870,7 +870,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "tables": {
@@ -886,7 +886,7 @@
        }
       ],
       "default": null,
-      "description": "Table names or glob patterns narrowing the answer; the plan still covers the whole schema. Default all. Example: [\"orders\", \"sales_*\"].",
+      "description": "Table names or globs to show. Default all. Example: [\"sales_*\"].",
       "title": "Tables"
      }
     },
@@ -901,16 +901,16 @@
   },
   {
    "name": "compare_semantic_model",
-   "description": "Compares an existing Power BI semantic model with the plan: missing, contradicted and extra relationships,\ncardinality, filter direction, active or inactive, stale tables and columns, and suggested measures. Requires\nworkspace, source and model or tmdl; reading the model needs SemanticModel.ReadWrite.All or Item.ReadWrite.All,\ntmdl needs no permission. Returns JSON with the differences and confirmed entries for extra links. Changes\nnothing. Errors: {error, kind, hint}.",
+   "description": "Compares an existing Power BI semantic model with the plan: missing, contradicted and extra relationships,\ncardinality, direction, active, stale columns, suggested measures. Requires workspace, source and model\n(SemanticModel.ReadWrite.All or Item.ReadWrite.All) or tmdl (no permission). Returns JSON with the differences and\nconfirmed entries for extra links. Changes nothing. Errors: {error, kind, hint}.",
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -922,7 +922,7 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -942,7 +942,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -959,7 +959,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "check_data": {
@@ -970,7 +970,7 @@
      },
      "max_items": {
       "default": 60,
-      "description": "Cap on counting queries (one per key and relationship), 1\u2013200. Default 60. Example: 120.",
+      "description": "Cap on counting queries (one per key and relationship), 1\u2013200. Default 60.",
       "title": "Max Items",
       "type": "integer"
      },
@@ -1006,12 +1006,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -1027,7 +1027,7 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -1047,7 +1047,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -1064,7 +1064,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      }
     },
@@ -1085,18 +1085,18 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -1116,7 +1116,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -1133,7 +1133,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "tables": {
@@ -1149,12 +1149,12 @@
        }
       ],
       "default": null,
-      "description": "Table names or glob patterns narrowing the answer; the plan still covers the whole schema. Default all. Example: [\"orders\", \"sales_*\"].",
+      "description": "Table names or globs to show. Default all. Example: [\"sales_*\"].",
       "title": "Tables"
      },
      "detail": {
       "default": "auto",
-      "description": "\"auto\" (default: full up to 60 tables, else summary), \"full\" or \"summary\". Example: \"summary\".",
+      "description": "\"auto\" (default: full up to 60 tables, else summary), \"full\" or \"summary\".",
       "title": "Detail",
       "type": "string"
      }
@@ -1174,18 +1174,18 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -1205,7 +1205,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -1222,7 +1222,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "check": {
@@ -1247,18 +1247,18 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -1278,7 +1278,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -1295,18 +1295,18 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "validate": {
       "default": false,
-      "description": "true runs validate_plan's counting queries and includes the counts; false (default) reads metadata only. Example: true.",
+      "description": "true runs validate_plan's counting queries and includes the counts; false (default) reads metadata only.",
       "title": "Validate",
       "type": "boolean"
      },
      "max_items": {
       "default": 60,
-      "description": "Cap on counting queries (one per key and relationship), 1\u2013200. Default 60. Example: 120.",
+      "description": "Cap on counting queries (one per key and relationship), 1\u2013200. Default 60.",
       "title": "Max Items",
       "type": "integer"
      },
@@ -1323,7 +1323,7 @@
        }
       ],
       "default": null,
-      "description": "Table names or glob patterns narrowing the answer; the plan still covers the whole schema. Default all. Example: [\"orders\", \"sales_*\"].",
+      "description": "Table names or globs to show. Default all. Example: [\"sales_*\"].",
       "title": "Tables"
      }
     },
@@ -1342,18 +1342,18 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -1386,7 +1386,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -1403,7 +1403,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "tables": {
@@ -1419,7 +1419,7 @@
        }
       ],
       "default": null,
-      "description": "Table names or glob patterns narrowing the answer; the plan still covers the whole schema. Default all. Example: [\"orders\", \"sales_*\"].",
+      "description": "Table names or globs to show. Default all. Example: [\"sales_*\"].",
       "title": "Tables"
      },
      "arguments_block": {
@@ -1444,12 +1444,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -1530,12 +1530,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -1546,7 +1546,7 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -1566,7 +1566,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -1583,7 +1583,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "tables": {
@@ -1599,7 +1599,7 @@
        }
       ],
       "default": null,
-      "description": "Exact table names to include; the plan still covers the whole schema. Default all. Example: [\"orders\", \"customers\"].",
+      "description": "Exact table names to include. Default all.",
       "title": "Tables"
      },
      "writable": {
@@ -1625,12 +1625,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -1641,7 +1641,7 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -1661,7 +1661,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -1678,7 +1678,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "tables": {
@@ -1694,12 +1694,12 @@
        }
       ],
       "default": null,
-      "description": "Exact table names to include; the plan still covers the whole schema. Default all. Example: [\"orders\", \"customers\"].",
+      "description": "Exact table names to include. Default all.",
       "title": "Tables"
      },
      "dry_run": {
       "default": true,
-      "description": "true (default) returns what would be created and the REST calls, changing nothing; false creates or updates. Example: false.",
+      "description": "true (default) returns what would be created and the REST calls, changing nothing; false creates or updates.",
       "title": "Dry Run",
       "type": "boolean"
      }
@@ -1720,18 +1720,18 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -1757,7 +1757,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -1774,12 +1774,12 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "dry_run": {
       "default": true,
-      "description": "true (default) returns what would be created and the REST calls, changing nothing; false creates or updates. Example: false.",
+      "description": "true (default) returns what would be created and the REST calls, changing nothing; false creates or updates.",
       "title": "Dry Run",
       "type": "boolean"
      }
@@ -1799,12 +1799,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -1815,7 +1815,7 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -1835,7 +1835,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -1852,7 +1852,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "publish": {
@@ -1863,13 +1863,13 @@
      },
      "show_personal_data": {
       "default": false,
-      "description": "true includes columns named like personal data (name, e-mail, phone, address, id number, birth date); false (default) masks or omits them. Example: true.",
+      "description": "true includes columns named like personal data; false (default) masks or omits them.",
       "title": "Show Personal Data",
       "type": "boolean"
      },
      "dry_run": {
       "default": true,
-      "description": "true (default) returns what would be created and the REST calls, changing nothing; false creates or updates. Example: false.",
+      "description": "true (default) returns what would be created and the REST calls, changing nothing; false creates or updates.",
       "title": "Dry Run",
       "type": "boolean"
      }
@@ -1886,28 +1886,28 @@
   },
   {
    "name": "silver_notebook_draft",
-   "description": "Drafts a PySpark notebook that writes de-duplicated silver Delta tables from a lakehouse: one row per key, every\nrelationship checked, rows with a missing reference put in krusgraph_quarantine. Requires workspace and a\nlakehouse source. Returns JSON with the steps (each with its rule) and the notebook source. Changes nothing;\ncreate_silver_notebook creates the item. Errors: {error, kind, hint}.",
+   "description": "Drafts a PySpark notebook writing de-duplicated silver Delta tables: one row per key, references checked, broken\nrows to krusgraph_quarantine. Requires workspace and a lakehouse source. Returns JSON with the steps and the\nnotebook source. Changes nothing. Errors: {error, kind, hint}.",
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
      "silver_schema": {
       "default": "silver",
-      "description": "Lakehouse schema with the silver tables create_silver_notebook writes. Default \"silver\". Example: \"silver\".",
+      "description": "Lakehouse schema with the silver tables create_silver_notebook writes. Default \"silver\".",
       "title": "Silver Schema",
       "type": "string"
      },
@@ -1943,7 +1943,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -1960,7 +1960,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "tables": {
@@ -1976,12 +1976,12 @@
        }
       ],
       "default": null,
-      "description": "Exact table names to include; the plan still covers the whole schema. Default all. Example: [\"orders\", \"customers\"].",
+      "description": "Exact table names to include. Default all.",
       "title": "Tables"
      },
      "show_personal_data": {
       "default": false,
-      "description": "true includes columns named like personal data (name, e-mail, phone, address, id number, birth date); false (default) masks or omits them. Example: true.",
+      "description": "true includes columns named like personal data; false (default) masks or omits them.",
       "title": "Show Personal Data",
       "type": "boolean"
      }
@@ -2001,12 +2001,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -2017,13 +2017,13 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
      "silver_schema": {
       "default": "silver",
-      "description": "Lakehouse schema with the silver tables create_silver_notebook writes. Default \"silver\". Example: \"silver\".",
+      "description": "Lakehouse schema with the silver tables create_silver_notebook writes. Default \"silver\".",
       "title": "Silver Schema",
       "type": "string"
      },
@@ -2059,7 +2059,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -2076,7 +2076,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "tables": {
@@ -2092,18 +2092,18 @@
        }
       ],
       "default": null,
-      "description": "Exact table names to include; the plan still covers the whole schema. Default all. Example: [\"orders\", \"customers\"].",
+      "description": "Exact table names to include. Default all.",
       "title": "Tables"
      },
      "show_personal_data": {
       "default": false,
-      "description": "true includes columns named like personal data (name, e-mail, phone, address, id number, birth date); false (default) masks or omits them. Example: true.",
+      "description": "true includes columns named like personal data; false (default) masks or omits them.",
       "title": "Show Personal Data",
       "type": "boolean"
      },
      "dry_run": {
       "default": true,
-      "description": "true (default) returns what would be created and the REST calls, changing nothing; false creates or updates. Example: false.",
+      "description": "true (default) returns what would be created and the REST calls, changing nothing; false creates or updates.",
       "title": "Dry Run",
       "type": "boolean"
      }
@@ -2124,24 +2124,24 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
      "silver_schema": {
       "default": "silver",
-      "description": "Lakehouse schema with the silver tables create_silver_notebook writes. Default \"silver\". Example: \"silver\".",
+      "description": "Lakehouse schema with the silver tables create_silver_notebook writes. Default \"silver\".",
       "title": "Silver Schema",
       "type": "string"
      },
@@ -2167,7 +2167,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -2184,7 +2184,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "tables": {
@@ -2200,12 +2200,12 @@
        }
       ],
       "default": null,
-      "description": "Exact table names to include; the plan still covers the whole schema. Default all. Example: [\"orders\", \"customers\"].",
+      "description": "Exact table names to include. Default all.",
       "title": "Tables"
      },
      "show_personal_data": {
       "default": false,
-      "description": "true includes columns named like personal data (name, e-mail, phone, address, id number, birth date); false (default) masks or omits them. Example: true.",
+      "description": "true includes columns named like personal data; false (default) masks or omits them.",
       "title": "Show Personal Data",
       "type": "boolean"
      }
@@ -2225,12 +2225,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -2241,13 +2241,13 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
      "silver_schema": {
       "default": "silver",
-      "description": "Lakehouse schema with the silver tables create_silver_notebook writes. Default \"silver\". Example: \"silver\".",
+      "description": "Lakehouse schema with the silver tables create_silver_notebook writes. Default \"silver\".",
       "title": "Silver Schema",
       "type": "string"
      },
@@ -2273,7 +2273,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -2290,7 +2290,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "tables": {
@@ -2306,18 +2306,18 @@
        }
       ],
       "default": null,
-      "description": "Exact table names to include; the plan still covers the whole schema. Default all. Example: [\"orders\", \"customers\"].",
+      "description": "Exact table names to include. Default all.",
       "title": "Tables"
      },
      "show_personal_data": {
       "default": false,
-      "description": "true includes columns named like personal data (name, e-mail, phone, address, id number, birth date); false (default) masks or omits them. Example: true.",
+      "description": "true includes columns named like personal data; false (default) masks or omits them.",
       "title": "Show Personal Data",
       "type": "boolean"
      },
      "dry_run": {
       "default": true,
-      "description": "true (default) returns what would be created and the REST calls, changing nothing; false creates or updates. Example: false.",
+      "description": "true (default) returns what would be created and the REST calls, changing nothing; false creates or updates.",
       "title": "Dry Run",
       "type": "boolean"
      }
@@ -2338,18 +2338,18 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -2400,12 +2400,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -2416,7 +2416,7 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -2453,7 +2453,7 @@
      },
      "dry_run": {
       "default": true,
-      "description": "true (default) returns what would be created and the REST calls, changing nothing; false creates or updates. Example: false.",
+      "description": "true (default) returns what would be created and the REST calls, changing nothing; false creates or updates.",
       "title": "Dry Run",
       "type": "boolean"
      }
@@ -2470,22 +2470,22 @@
   },
   {
    "name": "export_item_definitions",
-   "description": "Exports what the creating tools (create_backend, create_semantic_model, create_views, create_silver_notebook,\ncreate_drift_monitor, create_gold_views) would create, as files in Fabric's Git format: one <name>.<type> folder\nper item, views as .sql, and a README. Requires workspace and source. Returns JSON with the files, the items and\nwhat was skipped and why. Calls no Git provider; changes nothing in Fabric. Errors: {error, kind, hint}.",
+   "description": "Exports what the creating tools would create as files in Fabric's Git format: a <name>.<type> folder per item,\nviews as .sql, a README. Requires workspace and source. Returns JSON with the files, the items and what was\nskipped and why. Changes nothing. Errors: {error, kind, hint}.",
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -2537,7 +2537,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -2554,7 +2554,7 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "tables": {
@@ -2570,12 +2570,12 @@
        }
       ],
       "default": null,
-      "description": "Exact table names to include; the plan still covers the whole schema. Default all. Example: [\"orders\", \"customers\"].",
+      "description": "Exact table names to include. Default all.",
       "title": "Tables"
      },
      "silver_schema": {
       "default": "silver",
-      "description": "Lakehouse schema with the silver tables create_silver_notebook writes. Default \"silver\". Example: \"silver\".",
+      "description": "Lakehouse schema with the silver tables create_silver_notebook writes. Default \"silver\".",
       "title": "Silver Schema",
       "type": "string"
      },
@@ -2599,7 +2599,7 @@
      },
      "show_personal_data": {
       "default": false,
-      "description": "true includes columns named like personal data (name, e-mail, phone, address, id number, birth date); false (default) masks or omits them. Example: true.",
+      "description": "true includes columns named like personal data; false (default) masks or omits them.",
       "title": "Show Personal Data",
       "type": "boolean"
      }
@@ -2619,12 +2619,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "api": {
-      "description": "API for GraphQL item created by create_backend, by name or id. Example: \"shop_api\".",
+      "description": "API for GraphQL item created by create_backend, by name or id.",
       "title": "Api",
       "type": "string"
      }
@@ -2644,12 +2644,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "api": {
-      "description": "API for GraphQL item created by create_backend, by name or id. Example: \"shop_api\".",
+      "description": "API for GraphQL item created by create_backend, by name or id.",
       "title": "Api",
       "type": "string"
      }
@@ -2669,18 +2669,18 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -2713,12 +2713,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "api": {
-      "description": "API for GraphQL item created by create_backend, by name or id. Example: \"shop_api\".",
+      "description": "API for GraphQL item created by create_backend, by name or id.",
       "title": "Api",
       "type": "string"
      }
@@ -2738,12 +2738,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "source": {
-      "description": "Lakehouse, warehouse or SQL database in the workspace, name or id (list_sources). Example: \"demo_lh\".",
+      "description": "Lakehouse, warehouse or SQL database, name or id.",
       "title": "Source",
       "type": "string"
      },
@@ -2762,7 +2762,7 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      },
@@ -2795,7 +2795,7 @@
        }
       ],
       "default": null,
-      "description": "Primary keys replacing the inferred ones, {table: [columns]}, e.g. composite keys. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
+      "description": "Primary keys replacing the inferred ones. Default: inferred. Example: {\"order_items\": [\"order_id\", \"line_no\"]}.",
       "title": "Keys"
      },
      "confirmed": {
@@ -2812,12 +2812,12 @@
        }
       ],
       "default": null,
-      "description": "Relationships the user confirmed, added to the plan even when no rule found them (not an approval flag). Entry: source, source_cols, target, target_cols (default source_cols), optional field_name, reverse_name. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"], \"field_name\": \"ship_to\", \"reverse_name\": \"shipped_orders\"}].",
+      "description": "Relationships the user confirmed, added to the plan. Default none. Example: [{\"source\": \"orders\", \"source_cols\": [\"ship_to_id\"], \"target\": \"addresses\", \"target_cols\": [\"address_id\"]}].",
       "title": "Confirmed"
      },
      "show_personal_data": {
       "default": false,
-      "description": "true includes columns named like personal data (name, e-mail, phone, address, id number, birth date); false (default) masks or omits them. Example: true.",
+      "description": "true includes columns named like personal data; false (default) masks or omits them.",
       "title": "Show Personal Data",
       "type": "boolean"
      }
@@ -2839,12 +2839,12 @@
    "input_schema": {
     "properties": {
      "workspace": {
-      "description": "Fabric workspace, name or id (list_workspaces). Example: \"demo\".",
+      "description": "Fabric workspace, name or id.",
       "title": "Workspace",
       "type": "string"
      },
      "api": {
-      "description": "API for GraphQL item, name or id (list_sources: graphql_apis). Example: \"shop_api\".",
+      "description": "API for GraphQL item, name or id (list_sources: graphql_apis).",
       "title": "Api",
       "type": "string"
      },
@@ -2912,7 +2912,7 @@
      },
      "schema": {
       "default": "dbo",
-      "description": "Schema in the source. Default \"dbo\". Example: \"shop\".",
+      "description": "Schema in the source. Default \"dbo\".",
       "title": "Schema",
       "type": "string"
      }

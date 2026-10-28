@@ -13,10 +13,10 @@ keywords = ["microsoft-fabric", "evaluation", "copilot", "agents", "data-enginee
 test = ["pytest"]
 # the measurement rig in bench/ (fabric-backend supplies the shop schema and its seed rows)
 # anthropic 2.x: messages.create takes output_config and no sampling parameters; mcp 2.x: the client in bench/mcp_tools.py
-# fabric-backend at one commit (10cf219), the same as in CI, bench/README.md and bench/krusgraph_tools.json: the seed rows
+# fabric-backend at one commit (1750b09), the same as in CI, bench/README.md and bench/krusgraph_tools.json: the seed rows
 # decide every answer, so they move only when the snapshot does (tests/test_bench.py checks the four agree)
 bench = ["anthropic>=2,<3", "mcp>=2,<3", "pyodbc",
-         "fabric-backend @ git+https://github.com/Krusmaster/fabric-backend.git@10cf219d5d468a4f9138d16547d182992651f7f5"]
+         "fabric-backend @ git+https://github.com/Krusmaster/fabric-backend.git@1750b0903ee7f8780c9b138361f4ef58ba483222"]
 
 [project.scripts]
 fabric-eval = "fabric_eval.cli:main"
